@@ -37,5 +37,8 @@ test 3 '5 - 2'
 test 3 '8 - 4 - 1'
 test 3 '3 * 1'
 test 3 '9 / 3'
+test 10 '1 + 3 * 3'
+test 10 ' 3 * 3 + 1'
+test 10 ' 3 * 1 + 6 / 2 + 4'
 
 echo "All tests passed"

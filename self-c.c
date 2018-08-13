@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 enum { AST_INT };
 
@@ -130,23 +131,19 @@ static void emit_binop(Ast *ast) {
             op = "idiv";
             break;
     }
-    emit_expr(ast->left);
-    printf("\tmov ebx, eax\n");
     emit_expr(ast->right);
+    printf("\tPUSH rax\n");
+    emit_expr(ast->left);
+    printf("\tPOP rbx\n");
     if (ast->type == '/') {
-        printf("\tmov ecx, eax\n");
-        printf("\tmov eax, ebx\n");
         printf("\tcdq\n");
-        printf("\t%s ecx\n", op);
-    } else {
-        printf("\t%s ebx, eax\n", op);
-        printf("\tmov eax, ebx\n");
     }
+    printf("\t%s rax, rbx\n", op);
 }
 
 static void emit_expr(Ast *ast) {
     if (ast->type == AST_INT) {
-        printf("\tmov eax, %d\n", ast->int_val);
+        printf("\tmov rax, %d\n", ast->int_val);
     } else {
         emit_binop(ast);
     }
@@ -176,8 +173,11 @@ static void print_ast(Ast *ast) {
 
 int main(int argc, char const *argv[]) {
     Ast *ast = read_expr();
-    /*print_ast(ast);*/
-    /*printf("\n");*/
-    compile(ast);
+    if (argc == 2 && !strcmp(argv[1], "-a")) {
+        print_ast(ast);
+        printf("\n");
+    } else {
+        compile(ast);
+    }
     return 0;
 }
