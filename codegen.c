@@ -34,7 +34,22 @@ static void emit_expr(Ast *ast) {
     }
 }
 
+static void emit_stat(Ast *ast) {
+    if (ast->type == AST_RETURN) {
+        emit_expr(ast->stat_expr);
+        printf("\tret\n");
+    }
+}
+
+static void emit_stat_list(Ast *ast) {
+    for (int i = 0; i < ast->stat_list->count; ++i) {
+        emit_stat(vector_get(ast->stat_list, i));
+    }
+}
+
 static void emit_func(Ast *ast) { /** **/
+    printf("%s:\n", ast->func_name->str_val);
+    emit_stat_list(ast->func_stat_list);
 }
 
 static void emit_program(Ast *ast) {
@@ -48,7 +63,8 @@ void compile(Ast *ast) {
         ".intel_syntax noprefix\n"
         ".text\n"
         "\t.global _mymain\n"
-        "_mymain:\n");
-    emit_expr(ast);
-    printf("ret\n");
+        "_mymain:\n"
+        "\tcall main\n"
+        "\tret\n");
+    emit_program(ast);
 }

@@ -2,9 +2,11 @@
 #define SELF_C
 #include <ctype.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #define IDENT_BUF_LEN 512
 
 /* Tokens */
@@ -35,7 +37,7 @@ struct Token {
 } typedef Token;
 
 /* AST */
-enum { AST_IDENT, AST_INT, AST_FUNC };
+enum { AST_IDENT, AST_INT, AST_RETURN, AST_FUNC };
 typedef struct Ast {
     char type;
     union {
@@ -48,6 +50,14 @@ typedef struct Ast {
             struct Ast *left;
             struct Ast *right;
         };
+        /* stat */
+        struct {
+            struct Ast *stat_expr;
+        };
+        /* stat list */
+        struct {
+            struct Vector *stat_list;
+        };
         /* function call */
         struct {
             char *func_call_name;
@@ -56,9 +66,11 @@ typedef struct Ast {
         };
         /* function */
         struct {
-            char *func_name;
+            struct Ast *func_name;
+            struct Ast *func_return_type;
             int num_params;
             struct Ast *param_list;
+            struct Ast *func_stat_list;
         };
     };
 } Ast;

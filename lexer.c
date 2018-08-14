@@ -50,7 +50,7 @@ static void make_punctuation(Token *token, char c) {
             token->token_kind = TOKEN_COMMA;
             break;
         case ';':
-            token->token_kind = TOKEN_COMMA;
+            token->token_kind = TOKEN_SEMICOLON;
             break;
         default:
             error("%s: Unexpected token %c\n", __func__, c);
@@ -84,6 +84,9 @@ static void make_ident(Token *token, char c) {
         if (!(c == '_' || isalnum(c))) {
             ungetc(c, stdin);
             buf[i] = '\0';
+            if (!strcmp(buf, "return")) {
+                token->token_kind = TOKEN_RETURN;
+            }
             token->token_val = buf;
             return;
         }

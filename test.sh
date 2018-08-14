@@ -27,18 +27,17 @@ function test {
 
 make -s self-c
 
-test 0 0
-
-test 3 '1+2'
-test 3 '1 + 2'
-test 3 '1 + 1 + 1'
-test 3 '1 - 1 + 3'
-test 3 '5 - 2'
-test 3 '8 - 4 - 1'
-test 3 '3 * 1'
-test 3 '9 / 3'
-test 10 '1 + 3 * 3'
-test 10 ' 3 * 3 + 1'
-test 10 ' 3 * 1 + 6 / 2 + 4'
+test 0  'int main() { return 0; }'
+test 3  'int main () { return 1+2; }'
+test 3  'int main () { return 1 + 2; }'
+test 3  'int main () { return 1 + 1 + 1; }'
+test 3  'int main () { return 1 - 1 + 3; }'
+test 3  'int main () { return 5 - 2; }'
+test 3  'int main () { return 8 - 4 - 1; }'
+test 3  'int main () { return 3 * 1; }'
+test 3  'int main () { return 9 / 3; }'
+test 10 'int main () { return 1 + 3 * 3; }'
+test 10 'int main () { return 3 * 3 + 1; }'
+test 10 'int main () { return 3 * 1 + 6 / 2 + 4; }'
 
 echo "All tests passed"
