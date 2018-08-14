@@ -27,6 +27,8 @@ static void make_operator(Token *token, char c) {
         case '=':
             token->token_kind = TOKEN_EQU;
             break;
+        default:
+            error("%s: Unexpected token %c\n", __func__, c);
     }
 }
 
@@ -50,6 +52,8 @@ static void make_punctuation(Token *token, char c) {
         case ';':
             token->token_kind = TOKEN_COMMA;
             break;
+        default:
+            error("%s: Unexpected token %c\n", __func__, c);
     }
     token->token_val = NULL;
 }
@@ -62,11 +66,13 @@ static void make_number(Token *token, char c) {
         c = getc(stdin);
         if (!isdigit(c)) {
             ungetc(c, stdin);
+            buf[i] = '\0';
             token->token_val = buf;
             return;
         }
         buf[i] = c;
     }
+    error("%s: Buffer overflow\n", __func__);
 }
 
 static void make_ident(Token *token, char c) {
@@ -77,11 +83,13 @@ static void make_ident(Token *token, char c) {
         c = getc(stdin);
         if (!(c == '_' || isalnum(c))) {
             ungetc(c, stdin);
+            buf[i] = '\0';
             token->token_val = buf;
             return;
         }
         buf[i] = c;
     }
+    error("%s: Buffer overflow\n", __func__);
 }
 
 Vector *lex_init() {
@@ -122,12 +130,13 @@ void lex_scan(Vector *token_vec) {
                 make_ident(token, c);
                 break;
             default:
-                error("Cannot tokenize %c", c);
+                error("%s: Unexpected token %c", __func__, c);
         }
         vector_add(token_vec, token);
     }
 }
 
+/* Debug utils */
 void lex_print_tokens(Vector *token_vec) {
     for (int i = 0; i < token_vec->count; ++i) {
         Token *token = vector_get(token_vec, i);

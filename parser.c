@@ -92,6 +92,7 @@ Ast *parse(Vector *token_vec) {
     return read_expr(ast, token_vec, &token_index);
 }
 
+/* Debug utils */
 void print_ast(Ast *ast) {
     if (ast->type == AST_INT) {
         printf("%d", ast->int_val);
