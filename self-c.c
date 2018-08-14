@@ -2,22 +2,6 @@
 
 static int char2int(char c) { return c - '0'; }
 
-static void skip_space(void) {
-    int c;
-    while ((c = getc(stdin)) != EOF) {
-        if (isspace(c)) continue;
-        ungetc(c, stdin);
-        return;
-    }
-}
-
-static Ast *make_ast_ident(char *ident) {
-    Ast *ast = (Ast *)malloc(sizeof(Ast));
-    ast->type = AST_IDENT;
-    ast->str_val = ident;
-    return ast;
-}
-
 static Ast *make_ast_int(int n) {
     Ast *ast = (Ast *)malloc(sizeof(Ast));
     ast->type = AST_INT;
@@ -25,94 +9,84 @@ static Ast *make_ast_int(int n) {
     return ast;
 }
 
-static Ast *make_ast_op(char op, Ast *left, Ast *right) {
+static Ast *make_ast_op(TokenKind op, Ast *left, Ast *right) {
     Ast *ast = (Ast *)malloc(sizeof(Ast));
-    ast->type = op;
+    switch (op) {
+        case TOKEN_ADD:
+            ast->type = '+';
+            break;
+        case TOKEN_SUB:
+            ast->type = '-';
+            break;
+        case TOKEN_MUL:
+            ast->type = '*';
+            break;
+        case TOKEN_DIV:
+            ast->type = '/';
+            break;
+        default:
+            error("%s: Unexpected token");
+    }
     ast->left = left;
     ast->right = right;
     return ast;
 }
 
-static Ast *read_ident() {
-    char *buf = (char *)malloc(IDENT_BUF_LEN);
-    for (int i = 0; i < IDENT_BUF_LEN; ++i) {
-        char c = getc(stdin);
-        if (!isalnum(c)) {
-            ungetc(c, stdin);
-            return make_ast_ident(buf);
-        }
-        if (i == 0 && isdigit(c)) {
-            error("%s: Expected alphabet but received %c\n", __func__, c);
-        }
-        buf[i] = c;
-    }
-    error("%s: Identifier exceeded %d char limit\n", __func__, IDENT_BUF_LEN);
-}
-
-static Ast *read_number() {
+static Ast *read_int_lit(char *val) {
     int n = 0;
-    for (;;) {
-        char c = getc(stdin);
-        if (!isdigit(c)) {
-            ungetc(c, stdin);
-            return make_ast_int(n);
-        }
-        n = n * 10 + char2int(c);
+    while (*val != '\0') {
+        n = n * 10 + char2int(*val);
+        val++;
     }
+    return make_ast_int(n);
 }
 
-static Ast *read_factor() {
-    skip_space();
-    char c = getc(stdin);
-    if (isdigit(c)) {
-        ungetc(c, stdin);
-        return read_number();
+static Ast *read_factor(Vector *token_vec, int *token_index) {
+    Token *token = vector_get(token_vec, *token_index);
+    if (token->token_kind != TOKEN_INT_LIT) {
+        error("%s: Expected digit", __func__);
     }
-    error("%s: Expected digit but received %c", __func__, c);
+    *token_index = *token_index + 1;
+    return read_int_lit(token->token_val);
 }
 
-static Ast *read_term_tail(Ast *left) {
-    skip_space();
-    char c = getc(stdin);
-    if (c == EOF) {
+static Ast *read_term_tail(Vector *token_vec, int *token_index, Ast *left) {
+    if (token_vec->count == *token_index) {
         return left;
     }
-    if (c != '*' && c != '/') {
-        ungetc(c, stdin);
+    Token *token = vector_get(token_vec, *token_index);
+    if (!(token->token_kind == TOKEN_MUL || token->token_kind == TOKEN_DIV)) {
         return left;
     }
-    Ast *right = read_factor();
-    return read_term_tail(make_ast_op(c, left, right));
+    *token_index = *token_index + 1;
+    Ast *right = read_factor(token_vec, token_index);
+    return read_term_tail(token_vec, token_index, make_ast_op(token->token_kind, left, right));
 }
 
-static Ast *read_term() {
-    skip_space();
-    Ast *left = read_factor();
-    return read_term_tail(left);
+static Ast *read_term(Vector *token_vec, int *token_index) {
+    Ast *left = read_factor(token_vec, token_index);
+    return read_term_tail(token_vec, token_index, left);
 }
 
-static Ast *read_expr_tail(Ast *left) {
-    skip_space();
-    char c = getc(stdin);
-    if (c == EOF) {
+static Ast *read_expr_tail(Vector *token_vec, int *token_index, Ast *left) {
+    if (token_vec->count == *token_index) {
         return left;
     }
-    if (c != '+' && c != '-') {
-        ungetc(c, stdin);
+    Token *token = vector_get(token_vec, *token_index);
+    if (!(token->token_kind == TOKEN_ADD || token->token_kind == TOKEN_SUB)) {
         return left;
     }
-    Ast *right = read_term();
-    return read_expr_tail(make_ast_op(c, left, right));
+    *token_index = *token_index + 1;
+    Ast *right = read_term(token_vec, token_index);
+    return read_expr_tail(token_vec, token_index, make_ast_op(token->token_kind, left, right));
 }
 
-static Ast *read_expr(void) {
-    skip_space();
-    Ast *left = read_term();
-    return read_expr_tail(left);
+static Ast *read_expr(Ast *ast, Vector *token_vec, int *token_index) {
+    Ast *left = read_term(token_vec, token_index);
+    return read_expr_tail(token_vec, token_index, left);
 }
 
 static void emit_expr(Ast *ast);
-
 static void emit_binop(Ast *ast) {
     char *op;
     switch (ast->type) {
@@ -147,12 +121,19 @@ static void emit_expr(Ast *ast) {
     }
 }
 
-static void emit_func(Ast *ast) {}
+static void emit_func(Ast *ast) { /** **/
+}
 
 static void emit_program(Ast *ast) {
     if (ast->type == AST_FUNC) {
         emit_func(ast);
     }
+}
+
+static Ast *parser_to_ast(Vector *token_vec) {
+    Ast *ast = NULL;
+    int token_index = 0;
+    return read_expr(ast, token_vec, &token_index);
 }
 
 static void compile(Ast *ast) {
@@ -180,13 +161,22 @@ static void print_ast(Ast *ast) {
 int main(int argc, char const *argv[]) {
     Vector *token_vec = lex_init();
     lex_scan(token_vec);
-    lex_print_tokens(token_vec);
     /*Ast *ast = read_expr();*/
-    /*if (argc == 2 && !strcmp(argv[1], "-a")) {*/
-    /*print_ast(ast);*/
-    /*printf("\n");*/
-    /*} else {*/
-    /*compile(ast);*/
-    /*}*/
+    if (argc == 2) {
+        if (!strcmp(argv[1], "-a")) {
+            Ast *ast = parser_to_ast(token_vec);
+            print_ast(ast);
+            printf("\n");
+            return 0;
+        }
+        if (!strcmp(argv[1], "-t")) {
+            lex_print_tokens(token_vec);
+            printf("\n");
+            return 0;
+        }
+    } else {
+        Ast *ast = parser_to_ast(token_vec);
+        compile(ast);
+    }
     return 0;
 }

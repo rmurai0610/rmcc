@@ -28,9 +28,9 @@ enum {
     TOKEN_IDENT,
     /* literals */
     TOKEN_INT_LIT,
-};
+} typedef TokenKind;
 struct Token {
-    int token_kind;
+    TokenKind token_kind;
     char *token_val;
 } typedef Token;
 
