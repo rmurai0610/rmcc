@@ -1,33 +1,7 @@
-#include <ctype.h>
-
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-enum { AST_INT };
-
-typedef struct Ast {
-    char type;
-    union {
-        int int_val;
-        struct {
-            struct Ast *left;
-            struct Ast *right;
-        };
-    };
-} Ast;
-
-static void error(char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    fprintf(stderr, "\n");
-    va_end(args);
-    exit(1);
-}
+#include "self-c.h"
 
 static int char2int(char c) { return c - '0'; }
+
 static void skip_space(void) {
     int c;
     while ((c = getc(stdin)) != EOF) {
@@ -35,6 +9,13 @@ static void skip_space(void) {
         ungetc(c, stdin);
         return;
     }
+}
+
+static Ast *make_ast_ident(char *ident) {
+    Ast *ast = (Ast *)malloc(sizeof(Ast));
+    ast->type = AST_IDENT;
+    ast->str_val = ident;
+    return ast;
 }
 
 static Ast *make_ast_int(int n) {
@@ -52,7 +33,24 @@ static Ast *make_ast_op(char op, Ast *left, Ast *right) {
     return ast;
 }
 
-static Ast *read_number(int n) {
+static Ast *read_ident() {
+    char *buf = (char *)malloc(IDENT_BUF_LEN);
+    for (int i = 0; i < IDENT_BUF_LEN; ++i) {
+        char c = getc(stdin);
+        if (!isalnum(c)) {
+            ungetc(c, stdin);
+            return make_ast_ident(buf);
+        }
+        if (i == 0 && isdigit(c)) {
+            error("%s: Expected alphabet but received %c\n", __func__, c);
+        }
+        buf[i] = c;
+    }
+    error("%s: Identifier exceeded %d char limit\n", __func__, IDENT_BUF_LEN);
+}
+
+static Ast *read_number() {
+    int n = 0;
     for (;;) {
         char c = getc(stdin);
         if (!isdigit(c)) {
@@ -67,10 +65,10 @@ static Ast *read_factor() {
     skip_space();
     char c = getc(stdin);
     if (isdigit(c)) {
-        return read_number(c - '0');
+        ungetc(c, stdin);
+        return read_number();
     }
-    error("factor: cannot handle %c", c);
-    return 0;
+    error("%s: Expected digit but received %c", __func__, c);
 }
 
 static Ast *read_term_tail(Ast *left) {
@@ -149,6 +147,14 @@ static void emit_expr(Ast *ast) {
     }
 }
 
+static void emit_func(Ast *ast) {}
+
+static void emit_program(Ast *ast) {
+    if (ast->type == AST_FUNC) {
+        emit_func(ast);
+    }
+}
+
 static void compile(Ast *ast) {
     printf(
         ".intel_syntax noprefix\n"
@@ -172,12 +178,15 @@ static void print_ast(Ast *ast) {
 }
 
 int main(int argc, char const *argv[]) {
-    Ast *ast = read_expr();
-    if (argc == 2 && !strcmp(argv[1], "-a")) {
-        print_ast(ast);
-        printf("\n");
-    } else {
-        compile(ast);
-    }
+    Vector *token_vec = lex_init();
+    lex_scan(token_vec);
+    lex_print_tokens(token_vec);
+    /*Ast *ast = read_expr();*/
+    /*if (argc == 2 && !strcmp(argv[1], "-a")) {*/
+    /*print_ast(ast);*/
+    /*printf("\n");*/
+    /*} else {*/
+    /*compile(ast);*/
+    /*}*/
     return 0;
 }

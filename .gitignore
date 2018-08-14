@@ -1,3 +1,4 @@
 *.s
 *.out
 self-c
+utils-test
