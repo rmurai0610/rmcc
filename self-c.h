@@ -84,5 +84,11 @@ Vector *lex_init();
 void lex_scan(Vector *vec);
 void lex_print_tokens(Vector *token_vec);
 
-/* self-c */
+/* parser */
+Ast *parse(Vector *token_vec);
+void print_ast(Ast *ast);
+
+/* codegen */
+void compile(Ast *ast);
+
 #endif

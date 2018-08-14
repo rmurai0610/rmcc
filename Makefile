@@ -1,5 +1,5 @@
 CC=gcc
-OBJS=error-util.o vector.o lexer.o
+OBJS=error-util.o vector.o lexer.o parser.o codegen.o
 PROGRAM=self-c
 UTILS_TEST=utils-test
 
