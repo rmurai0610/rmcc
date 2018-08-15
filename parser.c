@@ -4,8 +4,7 @@ static int char2int(char c) { return c - '0'; }
 
 static void match(Token *token, TokenKind kind) {
     if (token->token_kind != kind) {
-        // TODO better error msg
-        error("Could not match token %d != %d\n", token->token_kind, kind);
+        error_token_mismatch(__func__, token->token_kind, kind);
     }
 }
 
@@ -39,7 +38,7 @@ static Ast *make_ast_op(TokenKind op, Ast *left, Ast *right) {
             ast->type = '/';
             break;
         default:
-            error("%s: Unexpected token");
+            error_token_mismatch_group(__func__, op, "binary operators");
     }
     ast->left = left;
     ast->right = right;
@@ -58,7 +57,7 @@ static Ast *read_int_lit(char *val) {
 static Ast *read_factor(Vector *token_vec, int *token_index) {
     Token *token = vector_get(token_vec, *token_index);
     if (token->token_kind != TOKEN_INT_LIT) {
-        error("%s: Expected digit! %s", __func__, token->token_val);
+        error_token_mismatch_group(__func__, token->token_kind, "digits");
     }
     *token_index = *token_index + 1;
     return read_int_lit(token->token_val);

@@ -1,5 +1,4 @@
 #include "self-c.h"
-
 static void skip_space(void) {
     int c;
     while ((c = getc(stdin)) != EOF) {
@@ -28,7 +27,7 @@ static void make_operator(Token *token, char c) {
             token->token_kind = TOKEN_EQU;
             break;
         default:
-            error("%s: Unexpected token %c\n", __func__, c);
+            error_unexpected_token(__func__, c);
     }
 }
 
@@ -53,7 +52,7 @@ static void make_punctuation(Token *token, char c) {
             token->token_kind = TOKEN_SEMICOLON;
             break;
         default:
-            error("%s: Unexpected token %c\n", __func__, c);
+            error_unexpected_token(__func__, c);
     }
     token->token_val = NULL;
 }
@@ -72,7 +71,7 @@ static void make_number(Token *token, char c) {
         }
         buf[i] = c;
     }
-    error("%s: Buffer overflow\n", __func__);
+    error_buffer_overflow(__func__, IDENT_BUF_LEN);
 }
 
 static void make_ident(Token *token, char c) {
@@ -92,7 +91,7 @@ static void make_ident(Token *token, char c) {
         }
         buf[i] = c;
     }
-    error("%s: Buffer overflow\n", __func__);
+    error_buffer_overflow(__func__, IDENT_BUF_LEN);
 }
 
 Vector *lex_init() {
@@ -133,7 +132,7 @@ void lex_scan(Vector *token_vec) {
                 make_ident(token, c);
                 break;
             default:
-                error("%s: Unexpected token %c", __func__, c);
+                error_unexpected_token(__func__, c);
         }
         vector_add(token_vec, token);
     }
@@ -143,49 +142,6 @@ void lex_scan(Vector *token_vec) {
 void lex_print_tokens(Vector *token_vec) {
     for (int i = 0; i < token_vec->count; ++i) {
         Token *token = vector_get(token_vec, i);
-        switch (token->token_kind) {
-            case TOKEN_LPARAN:
-                printf("TOKEN_LPARAN\n");
-                break;
-            case TOKEN_RPARAN:
-                printf("TOKEN_RPARAN\n");
-                break;
-            case TOKEN_LPARAN_CURLY:
-                printf("TOKEN_LPARAN_CURLY\n");
-                break;
-            case TOKEN_RPARAN_CURLY:
-                printf("TOKEN_RPARAN_CURLY\n");
-                break;
-            case TOKEN_COMMA:
-                printf("TOKEN_COMMA\n");
-                break;
-            case TOKEN_SEMICOLON:
-                printf("TOKEN_SEMICOLON\n");
-                break;
-            case TOKEN_RETURN:
-                printf("TOKEN_RETURN\n");
-                break;
-            case TOKEN_ADD:
-                printf("TOKEN_ADD\n");
-                break;
-            case TOKEN_SUB:
-                printf("TOKEN_SUB\n");
-                break;
-            case TOKEN_MUL:
-                printf("TOKEN_MUL\n");
-                break;
-            case TOKEN_DIV:
-                printf("TOKEN_DIV\n");
-                break;
-            case TOKEN_EQU:
-                printf("TOKEN_EQU\n");
-                break;
-            case TOKEN_IDENT:
-                printf("TOKEN_IDENT %s\n", token->token_val);
-                break;
-            case TOKEN_INT_LIT:
-                printf("TOKEN_INT_LIT %s\n", token->token_val);
-                break;
-        }
+        printf("%s\n", token_kind_string[token->token_kind]);
     }
 }

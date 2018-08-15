@@ -9,35 +9,47 @@
 
 #define IDENT_BUF_LEN 512
 
+#define TO_ENUM(ENUM) ENUM,
+#define TO_STRING(ENUM) #ENUM,
+
+#define ALL_TOKENS(FUNC)     \
+    /* punctuations */       \
+    FUNC(TOKEN_LPARAN)       \
+    FUNC(TOKEN_RPARAN)       \
+    FUNC(TOKEN_LPARAN_CURLY) \
+    FUNC(TOKEN_RPARAN_CURLY) \
+    FUNC(TOKEN_COMMA)        \
+    FUNC(TOKEN_SEMICOLON)    \
+    /* reserved keywords */  \
+    FUNC(TOKEN_RETURN)       \
+    /* operators */          \
+    FUNC(TOKEN_ADD)          \
+    FUNC(TOKEN_SUB)          \
+    FUNC(TOKEN_MUL)          \
+    FUNC(TOKEN_DIV)          \
+    FUNC(TOKEN_EQU)          \
+    /* identifier */         \
+    FUNC(TOKEN_IDENT)        \
+    /* literals */           \
+    FUNC(TOKEN_INT_LIT)
+
+#define ALL_AST(FUNC) \
+    FUNC(AST_IDENT)   \
+    FUNC(AST_INT)     \
+    FUNC(AST_RETURN)  \
+    FUNC(AST_FUNC)
+
 /* Tokens */
-enum {
-    /* punctuations */
-    TOKEN_LPARAN,
-    TOKEN_RPARAN,
-    TOKEN_LPARAN_CURLY,
-    TOKEN_RPARAN_CURLY,
-    TOKEN_COMMA,
-    TOKEN_SEMICOLON,
-    /* reserved keywords */
-    TOKEN_RETURN,
-    /* operators */
-    TOKEN_ADD,
-    TOKEN_SUB,
-    TOKEN_MUL,
-    TOKEN_DIV,
-    TOKEN_EQU,
-    /* identifier */
-    TOKEN_IDENT,
-    /* literals */
-    TOKEN_INT_LIT,
-} typedef TokenKind;
+enum { ALL_TOKENS(TO_ENUM) } typedef TokenKind;
+static const char *token_kind_string[] = {ALL_TOKENS(TO_STRING)};
 struct Token {
     TokenKind token_kind;
     char *token_val;
 } typedef Token;
 
 /* AST */
-enum { AST_IDENT, AST_INT, AST_RETURN, AST_FUNC };
+enum { ALL_AST(TO_ENUM) } typedef AstType;
+static const char *ast_type_string[] = {ALL_AST(TO_STRING)};
 typedef struct Ast {
     char type;
     union {
@@ -90,6 +102,11 @@ void vector_resize(Vector *vec, int size);
 
 /* error-util */
 void error(char *fmt, ...) __attribute__((noreturn));
+void error_unexpected(char *func_name, char *unexpected);
+void error_unexpected_token(const char *func_name, char unexpected);
+void error_buffer_overflow(const char *func_name, int max_size);
+void error_token_mismatch(const char *func_name, TokenKind token_actual, TokenKind token_excepted);
+void error_token_mismatch_group(const char *func_name, TokenKind token_actual, char *group);
 
 /* lexer */
 Vector *lex_init();
