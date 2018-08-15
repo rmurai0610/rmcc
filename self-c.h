@@ -30,18 +30,21 @@
     FUNC(TOKEN_EQU)          \
     /* identifier */         \
     FUNC(TOKEN_IDENT)        \
+    /* types */              \
+    FUNC(TOKEN_TYPE)         \
     /* literals */           \
     FUNC(TOKEN_INT_LIT)
 
 #define ALL_AST(FUNC) \
     FUNC(AST_IDENT)   \
+    FUNC(AST_TYPE)    \
     FUNC(AST_INT)     \
     FUNC(AST_RETURN)  \
     FUNC(AST_FUNC)
 
 /* Tokens */
 enum { ALL_TOKENS(TO_ENUM) } typedef TokenKind;
-static const char *token_kind_string[] = {ALL_TOKENS(TO_STRING)};
+extern const char *token_kind_string[];
 struct Token {
     TokenKind token_kind;
     char *token_val;
@@ -49,7 +52,7 @@ struct Token {
 
 /* AST */
 enum { ALL_AST(TO_ENUM) } typedef AstType;
-static const char *ast_type_string[] = {ALL_AST(TO_STRING)};
+extern const char *ast_type_string[];
 typedef struct Ast {
     char type;
     union {
@@ -70,6 +73,15 @@ typedef struct Ast {
         struct {
             struct Vector *stat_list;
         };
+        /* param */
+        struct {
+            struct Ast *param_type;
+            char *param_name;
+        };
+        /* param list */
+        struct {
+            struct Vector *param_list;
+        };
         /* function call */
         struct {
             char *func_call_name;
@@ -81,7 +93,7 @@ typedef struct Ast {
             struct Ast *func_name;
             struct Ast *func_return_type;
             int num_params;
-            struct Ast *param_list;
+            struct Ast *func_param_list;
             struct Ast *func_stat_list;
         };
     };

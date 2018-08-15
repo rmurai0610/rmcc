@@ -47,7 +47,7 @@ static void emit_stat_list(Ast *ast) {
     }
 }
 
-static void emit_func(Ast *ast) { /** **/
+static void emit_func(Ast *ast) {
     printf("%s:\n", ast->func_name->str_val);
     emit_stat_list(ast->func_stat_list);
 }

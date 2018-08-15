@@ -1,4 +1,6 @@
 #include "self-c.h"
+const char *token_kind_string[] = {ALL_TOKENS(TO_STRING)};
+
 static void skip_space(void) {
     int c;
     while ((c = getc(stdin)) != EOF) {
@@ -74,7 +76,7 @@ static void make_number(Token *token, char c) {
     error_buffer_overflow(__func__, IDENT_BUF_LEN);
 }
 
-static void make_ident(Token *token, char c) {
+static void make_ident_or_type(Token *token, char c) {
     token->token_kind = TOKEN_IDENT;
     char *buf = (char *)malloc(IDENT_BUF_LEN);
     buf[0] = c;
@@ -85,6 +87,9 @@ static void make_ident(Token *token, char c) {
             buf[i] = '\0';
             if (!strcmp(buf, "return")) {
                 token->token_kind = TOKEN_RETURN;
+            }
+            if (!strcmp(buf, "int")) {
+                token->token_kind = TOKEN_TYPE;
             }
             token->token_val = buf;
             return;
@@ -129,7 +134,7 @@ void lex_scan(Vector *token_vec) {
             case 'A' ... 'Z':
             case 'a' ... 'z':
             case '_':
-                make_ident(token, c);
+                make_ident_or_type(token, c);
                 break;
             default:
                 error_unexpected_token(__func__, c);

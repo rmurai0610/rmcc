@@ -1,5 +1,7 @@
 #include "self-c.h"
 
+const char *ast_type_string[] = {ALL_AST(TO_STRING)};
+
 static int char2int(char c) { return c - '0'; }
 
 static void match(Token *token, TokenKind kind, int *token_index) {
@@ -10,21 +12,28 @@ static void match(Token *token, TokenKind kind, int *token_index) {
 }
 
 static Ast *make_ast_int(int n) {
-    Ast *ast = (Ast *)malloc(sizeof(Ast));
+    Ast *ast = malloc(sizeof(Ast));
     ast->type = AST_INT;
     ast->int_val = n;
     return ast;
 }
 
 static Ast *make_ast_ident(char *ident) {
-    Ast *ast = (Ast *)malloc(sizeof(Ast));
+    Ast *ast = malloc(sizeof(Ast));
     ast->type = AST_IDENT;
     ast->str_val = ident;
     return ast;
 }
 
+static Ast *make_ast_type(char *type) {
+    Ast *ast = malloc(sizeof(Ast));
+    ast->type = AST_TYPE;
+    ast->str_val = type;
+    return ast;
+}
+
 static Ast *make_ast_op(TokenKind op, Ast *left, Ast *right) {
-    Ast *ast = (Ast *)malloc(sizeof(Ast));
+    Ast *ast = malloc(sizeof(Ast));
     switch (op) {
         case TOKEN_ADD:
             ast->type = '+';
@@ -101,7 +110,7 @@ static Ast *read_expr(Vector *token_vec, int *token_index) {
 }
 
 static Ast *read_stat(Vector *token_vec, int *token_index) {
-    Ast *ast = (Ast *)malloc(sizeof(Ast));
+    Ast *ast = malloc(sizeof(Ast));
     Token *token = vector_get(token_vec, *token_index);
     match(token, TOKEN_RETURN, token_index);
     ast->type = AST_RETURN;
@@ -111,7 +120,7 @@ static Ast *read_stat(Vector *token_vec, int *token_index) {
 }
 
 static Ast *read_stat_list(Vector *token_vec, int *token_index, TokenKind end_kind) {
-    Ast *ast = (Ast *)malloc(sizeof(Ast));
+    Ast *ast = malloc(sizeof(Ast));
     ast->stat_list = vector_init();
     for (;;) {
         Token *token = vector_get(token_vec, *token_index);
@@ -125,12 +134,42 @@ static Ast *read_stat_list(Vector *token_vec, int *token_index, TokenKind end_ki
     return ast;
 }
 
+static Ast *read_param(Vector *token_vec, int *token_index) {
+    Ast *ast = malloc(sizeof(Ast));
+    Token *token = vector_get(token_vec, *token_index);
+    match(token, TOKEN_TYPE, token_index);
+    ast->param_type = make_ast_type(token->token_val);
+
+    token = vector_get(token_vec, *token_index);
+    match(token, TOKEN_IDENT, token_index);
+    ast->param_name = token->token_val;
+    return ast;
+}
+
+static Ast *read_params_list(Vector *token_vec, int *token_index, TokenKind end_kind) {
+    Ast *ast = malloc(sizeof(Ast));
+    ast->param_list = vector_init();
+    for (;;) {
+        Token *token = vector_get(token_vec, *token_index);
+        if (token->token_kind == end_kind) {
+            return ast;
+        }
+        vector_add(ast->param_list, read_param(token_vec, token_index));
+        token = vector_get(token_vec, *token_index);
+        if (token->token_kind == end_kind) {
+            return ast;
+        }
+        match(token, TOKEN_COMMA, token_index);
+    }
+    return ast;
+}
+
 static Ast *read_function(Vector *token_vec, int *token_index) {
     Ast *ast = malloc(sizeof(Ast));
     ast->type = AST_FUNC;
     Token *token = vector_get(token_vec, *token_index);
-    match(token, TOKEN_IDENT, token_index);
-    ast->func_return_type = make_ast_ident(token->token_val);
+    match(token, TOKEN_TYPE, token_index);
+    ast->func_return_type = make_ast_type(token->token_val);
 
     token = vector_get(token_vec, *token_index);
     match(token, TOKEN_IDENT, token_index);
@@ -138,6 +177,8 @@ static Ast *read_function(Vector *token_vec, int *token_index) {
 
     token = vector_get(token_vec, *token_index);
     match(token, TOKEN_LPARAN, token_index);
+
+    ast->func_param_list = read_params_list(token_vec, token_index, TOKEN_RPARAN);
 
     token = vector_get(token_vec, *token_index);
     match(token, TOKEN_RPARAN, token_index);
@@ -162,13 +203,16 @@ Ast *parse(Vector *token_vec) {
 
 /* Debug utils */
 void print_ast(Ast *ast) {
-    if (ast->type == AST_INT) {
-        printf("%d", ast->int_val);
-    } else {
-        printf("(%c", ast->type);
-        print_ast(ast->left);
-        printf(" ");
-        print_ast(ast->right);
-        printf(")");
+    switch (ast->type) {
+        case AST_INT:
+            printf("%d", ast->int_val);
+            break;
+        default:
+            printf("(%c", ast->type);
+            print_ast(ast->left);
+            printf(" ");
+            print_ast(ast->right);
+            printf(")");
+            break;
     }
 }
