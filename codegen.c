@@ -17,9 +17,9 @@ static void emit_binop(Ast *ast) {
             break;
     }
     emit_expr(ast->right);
-    printf("\tPUSH rax\n");
+    printf("\tpush rax\n");
     emit_expr(ast->left);
-    printf("\tPOP rbx\n");
+    printf("\tpop rbx\n");
     if (ast->type == '/') {
         printf("\tcdq\n");
     }

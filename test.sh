@@ -39,5 +39,6 @@ test 3  'int main () { return 9 / 3; }'
 test 10 'int main () { return 1 + 3 * 3; }'
 test 10 'int main () { return 3 * 3 + 1; }'
 test 10 'int main () { return 3 * 1 + 6 / 2 + 4; }'
+test 10 'int main () { return 6 / 1 / 6 + 9; }'
 
 echo "All tests passed"
