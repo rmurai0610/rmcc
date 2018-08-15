@@ -16,6 +16,7 @@ int main(int argc, char const *argv[]) {
             return 0;
         }
     } else {
+        init_symbol_tables();
         Ast *ast = parse(token_vec);
         compile(ast);
     }

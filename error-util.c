@@ -25,3 +25,6 @@ void error_token_mismatch(const char *func_name, TokenKind token_actual, TokenKi
 void error_token_mismatch_group(const char *func_name, TokenKind token_actual, char *group) {
     error("%s: Token mismatch, expected group %s but got %s\n", func_name, group, token_kind_string[token_actual]);
 }
+void error_identifier_not_found(const char *func_name, char *ident) {
+    error("%s: Identifier %s not found\n", func_name, ident);
+}

@@ -4,8 +4,15 @@ const char *ast_type_string[] = {ALL_AST(TO_STRING)};
 
 static int char2int(char c) { return c - '0'; }
 
+static bool is_token(Token *token, TokenKind kind) { return token->token_kind == kind; }
+
+struct Parser {
+    Vector *tokens;
+    int token_index;
+} typedef Parser;
+
 static void match(Token *token, TokenKind kind, int *token_index) {
-    if (token->token_kind != kind) {
+    if (!is_token(token, kind)) {
         error_token_mismatch(__func__, token->token_kind, kind);
     }
     *token_index = *token_index + 1;
@@ -66,10 +73,14 @@ static Ast *read_int_lit(char *val) {
 
 static Ast *read_factor(Vector *token_vec, int *token_index) {
     Token *token = vector_get(token_vec, *token_index);
-    if (token->token_kind != TOKEN_INT_LIT) {
-        error_token_mismatch_group(__func__, token->token_kind, "digits");
+    if (is_token(token, TOKEN_IDENT)) {
+        if (!symbol_table_check_symbol(token->token_val)) {
+            error_identifier_not_found(__func__, token->token_val);
+        }
+        *token_index = *token_index + 1;
+        return make_ast_ident(token->token_val);
     }
-    *token_index = *token_index + 1;
+    match(token, TOKEN_INT_LIT, token_index);
     return read_int_lit(token->token_val);
 }
 
@@ -109,14 +120,43 @@ static Ast *read_expr(Vector *token_vec, int *token_index) {
     return read_expr_tail(token_vec, token_index, left);
 }
 
-static Ast *read_stat(Vector *token_vec, int *token_index) {
-    Ast *ast = malloc(sizeof(Ast));
+static Ast *read_stat_return(Vector *token_vec, int *token_index) {
     Token *token = vector_get(token_vec, *token_index);
     match(token, TOKEN_RETURN, token_index);
+    Ast *ast = malloc(sizeof(Ast));
     ast->type = AST_RETURN;
-
-    ast->stat_expr = read_expr(token_vec, token_index);
+    ast->stat_rhs = read_expr(token_vec, token_index);
     return ast;
+}
+
+static Ast *read_stat_assignment(Vector *token_vec, int *token_index) {
+    Ast *ast = malloc(sizeof(Ast));
+    Token *token = vector_get(token_vec, *token_index);
+    match(token, TOKEN_TYPE, token_index);
+
+    token = vector_get(token_vec, *token_index);
+    match(token, TOKEN_IDENT, token_index);
+    ast->stat_lhs = make_ast_ident(token->token_val);
+    symbol_table_add_offset(token->token_val);
+
+    token = vector_get(token_vec, *token_index);
+    match(token, TOKEN_EQU, token_index);
+
+    ast->type = AST_ASSIGN;
+    ast->stat_rhs = read_expr(token_vec, token_index);
+
+    return ast;
+}
+
+static Ast *read_stat(Vector *token_vec, int *token_index) {
+    Token *token = vector_get(token_vec, *token_index);
+    if (is_token(token, TOKEN_RETURN)) {
+        return read_stat_return(token_vec, token_index);
+    }
+    if (is_token(token, TOKEN_TYPE)) {
+        return read_stat_assignment(token_vec, token_index);
+    }
+    error_token_mismatch_group(__func__, token->token_kind, "statement");
 }
 
 static Ast *read_stat_list(Vector *token_vec, int *token_index, TokenKind end_kind) {
@@ -131,7 +171,6 @@ static Ast *read_stat_list(Vector *token_vec, int *token_index, TokenKind end_ki
         token = vector_get(token_vec, *token_index);
         match(token, TOKEN_SEMICOLON, token_index);
     }
-    return ast;
 }
 
 static Ast *read_param(Vector *token_vec, int *token_index) {
@@ -161,7 +200,6 @@ static Ast *read_params_list(Vector *token_vec, int *token_index, TokenKind end_
         }
         match(token, TOKEN_COMMA, token_index);
     }
-    return ast;
 }
 
 static Ast *read_function(Vector *token_vec, int *token_index) {
@@ -203,16 +241,16 @@ Ast *parse(Vector *token_vec) {
 
 /* Debug utils */
 void print_ast(Ast *ast) {
-    switch (ast->type) {
-        case AST_INT:
-            printf("%d", ast->int_val);
-            break;
-        default:
-            printf("(%c", ast->type);
-            print_ast(ast->left);
-            printf(" ");
-            print_ast(ast->right);
-            printf(")");
-            break;
-    }
+    /*switch (ast->type) {*/
+    /*case AST_INT:*/
+    /*printf("%d", ast->int_val);*/
+    /*break;*/
+    /*default:*/
+    /*printf("(%c", ast->type);*/
+    /*print_ast(ast->left);*/
+    /*printf(" ");*/
+    /*print_ast(ast->right);*/
+    /*printf(")");*/
+    /*break;*/
+    /*}*/
 }

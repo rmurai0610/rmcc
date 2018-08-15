@@ -1,7 +1,7 @@
 /* Vector of void pointers */
 #include "self-c.h"
 
-Vector *vector_init() {
+Vector *vector_init(void) {
     Vector *vec = (Vector *)malloc(sizeof(Vector));
     vec->size = 1;
     vec->count = 0;

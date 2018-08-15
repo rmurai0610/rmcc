@@ -40,6 +40,7 @@
     FUNC(AST_TYPE)    \
     FUNC(AST_INT)     \
     FUNC(AST_RETURN)  \
+    FUNC(AST_ASSIGN)  \
     FUNC(AST_FUNC)
 
 /* Tokens */
@@ -67,7 +68,9 @@ typedef struct Ast {
         };
         /* stat */
         struct {
-            struct Ast *stat_expr;
+            struct Ast *stat_type;
+            struct Ast *stat_lhs;
+            struct Ast *stat_rhs;
         };
         /* stat list */
         struct {
@@ -92,36 +95,63 @@ typedef struct Ast {
         struct {
             struct Ast *func_name;
             struct Ast *func_return_type;
-            int num_params;
             struct Ast *func_param_list;
             struct Ast *func_stat_list;
         };
     };
 } Ast;
 
-/* Vector */
+/* vector */
 struct Vector {
     int size;
     int count;
     void **data;
 } typedef Vector;
 
-Vector *vector_init();
+Vector *vector_init(void);
 void *vector_get(Vector *vec, int index);
 void vector_add(Vector *vec, void *data);
 void vector_delete(Vector *vec, int index);
 void vector_resize(Vector *vec, int size);
 
+/* map */
+struct KeyValue {
+    char *key;
+    void *value;
+} typedef KeyValue;
+
+struct Map {
+    Vector *data;
+} typedef Map;
+
+Map *map_init(void);
+Map *map_add(Map *map, char *key, void *value);
+Map *map_delete(Map *map, char *key);
+void *map_get(Map *map, char *key);
+
 /* error-util */
 void error(char *fmt, ...) __attribute__((noreturn));
-void error_unexpected(char *func_name, char *unexpected);
-void error_unexpected_token(const char *func_name, char unexpected);
-void error_buffer_overflow(const char *func_name, int max_size);
-void error_token_mismatch(const char *func_name, TokenKind token_actual, TokenKind token_excepted);
-void error_token_mismatch_group(const char *func_name, TokenKind token_actual, char *group);
+void error_unexpected(char *func_name, char *unexpected) __attribute__((noreturn));
+void error_unexpected_token(const char *func_name, char unexpected) __attribute__((noreturn));
+void error_buffer_overflow(const char *func_name, int max_size) __attribute__((noreturn));
+void error_token_mismatch(const char *func_name, TokenKind token_actual, TokenKind token_excepted)
+    __attribute__((noreturn));
+void error_token_mismatch_group(const char *func_name, TokenKind token_actual, char *group) __attribute__((noreturn));
+void error_identifier_not_found(const char *func_name, char *ident) __attribute__((noreturn));
+
+/* symbol table */
+struct SymbolTable {
+    Map *offset_map;
+    int offset;
+} typedef SymbolTable;
+
+void init_symbol_tables(void);
+bool symbol_table_check_symbol(char *key);
+int symbol_table_get_offset(char *key);
+void symbol_table_add_offset(char *key);
 
 /* lexer */
-Vector *lex_init();
+Vector *lex_init(void);
 void lex_scan(Vector *vec);
 void lex_print_tokens(Vector *token_vec);
 

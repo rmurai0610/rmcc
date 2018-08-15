@@ -29,15 +29,25 @@ static void emit_binop(Ast *ast) {
 static void emit_expr(Ast *ast) {
     if (ast->type == AST_INT) {
         printf("\tmov rax, %d\n", ast->int_val);
-    } else {
-        emit_binop(ast);
+        return;
     }
+    if (ast->type == AST_IDENT) {
+        int offset = symbol_table_get_offset(ast->str_val) * 8;
+        printf("\tmov rax, [rbp-%d]\n", offset);
+        return;
+    }
+    emit_binop(ast);
 }
 
 static void emit_stat(Ast *ast) {
     if (ast->type == AST_RETURN) {
-        emit_expr(ast->stat_expr);
+        emit_expr(ast->stat_rhs);
         printf("\tret\n");
+    }
+    if (ast->type == AST_ASSIGN) {
+        emit_expr(ast->stat_rhs);
+        int offset = symbol_table_get_offset(ast->stat_lhs->str_val) * 8;
+        printf("\tmov [rbp-%d], rax\n", offset);
     }
 }
 

@@ -99,7 +99,7 @@ static void make_ident_or_type(Token *token, char c) {
     error_buffer_overflow(__func__, IDENT_BUF_LEN);
 }
 
-Vector *lex_init() {
+Vector *lex_init(void) {
     Vector *token_vec = (Vector *)vector_init();
     return token_vec;
 }
