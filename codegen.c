@@ -2,7 +2,7 @@
 static void emit_expr(Ast *ast);
 static void emit_binop(Ast *ast) {
     char *op;
-    switch (ast->type) {
+    switch (ast->op) {
         case '+':
             op = "add";
             break;
@@ -20,7 +20,7 @@ static void emit_binop(Ast *ast) {
     printf("\tpush rax\n");
     emit_expr(ast->left);
     printf("\tpop rbx\n");
-    if (ast->type == '/') {
+    if (ast->op == '/') {
         printf("\tcdq\n");
     }
     printf("\t%s rax, rbx\n", op);

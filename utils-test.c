@@ -4,15 +4,29 @@
         FAILED_TEST();                                             \
         return;                                                    \
     }
+
+#define ASSERT_EQUAL_PTR(actual, expected)                         \
+    if (!assert_equal_ptr(actual, expected, __func__, __LINE__)) { \
+        FAILED_TEST();                                             \
+        return;                                                    \
+    }
 #define PASSED_TEST() (printf("%s: PASS\n", __func__))
 #define FAILED_TEST() (printf("%s: FAIL\n", __func__))
 
-static int assert_equal_int(int actual, int expected, const char *func, int line) {
+static bool assert_equal_int(int actual, int expected, const char *func, int line) {
     if (actual != expected) {
         printf("%s Line %d: Expected %d but received %d\n", func, line, expected, actual);
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
+}
+
+static bool assert_equal_ptr(void *actual, void *expected, const char *func, int line) {
+    if (actual != expected) {
+        printf("%s Line %d: Expected %p but received %p\n", func, line, expected, actual);
+        return false;
+    }
+    return true;
 }
 
 static void int_vector_print(Vector *vec) {
@@ -62,7 +76,24 @@ static void test_vector() {
     PASSED_TEST();
 }
 
+static void test_map() {
+    Map *map = map_init();
+    int *i = malloc(sizeof(int));
+    *i = 1;
+    map_add(map, "a", i);
+    ASSERT_EQUAL_INT(*(int *)map_get(map, "a"), 1);
+    int *j = malloc(sizeof(int));
+    *j = 2;
+    map_add(map, "b", j);
+    ASSERT_EQUAL_INT(*(int *)map_get(map, "a"), 1);
+    ASSERT_EQUAL_INT(*(int *)map_get(map, "b"), 2);
+    map_delete(map, "a");
+    ASSERT_EQUAL_PTR(map_get(map, "a"), NULL);
+    PASSED_TEST();
+}
+
 int main(int argc, char const *argv[]) {
     test_vector();
+    test_map();
     return 0;
 }

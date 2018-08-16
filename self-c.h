@@ -35,12 +35,19 @@
     /* literals */           \
     FUNC(TOKEN_INT_LIT)
 
-#define ALL_AST(FUNC) \
-    FUNC(AST_IDENT)   \
-    FUNC(AST_TYPE)    \
-    FUNC(AST_INT)     \
-    FUNC(AST_RETURN)  \
-    FUNC(AST_ASSIGN)  \
+#define ALL_AST(FUNC)    \
+    FUNC(AST_IDENT)      \
+    FUNC(AST_TYPE)       \
+    FUNC(AST_INT)        \
+    FUNC(AST_BIN_OP)     \
+    FUNC(AST_RETURN)     \
+    FUNC(AST_ASSIGN)     \
+    FUNC(AST_FUNC_CALL)  \
+    FUNC(AST_STAT_LIST)  \
+    FUNC(AST_ARG)        \
+    FUNC(AST_ARG_LIST)   \
+    FUNC(AST_PARAM)      \
+    FUNC(AST_PARAM_LIST) \
     FUNC(AST_FUNC)
 
 /* Tokens */
@@ -55,7 +62,7 @@ struct Token {
 enum { ALL_AST(TO_ENUM) } typedef AstType;
 extern const char *ast_type_string[];
 typedef struct Ast {
-    char type;
+    AstType type;
     union {
         /* int literal */
         int int_val;
@@ -63,6 +70,7 @@ typedef struct Ast {
         char *str_val;
         /* binary operator */
         struct {
+            char op;
             struct Ast *left;
             struct Ast *right;
         };
@@ -85,11 +93,19 @@ typedef struct Ast {
         struct {
             struct Vector *param_list;
         };
+        /* arg */
+        struct {
+            struct Ast *arg_type;
+            char *arg_name;
+        };
+        /* arg list */
+        struct {
+            struct Vector *arg_list;
+        };
         /* function call */
         struct {
-            char *func_call_name;
-            int num_args;
-            struct Ast *arg_list;
+            struct Ast *func_call_name;
+            struct Ast *func_call_arg_list;
         };
         /* function */
         struct {
