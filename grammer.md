@@ -5,9 +5,11 @@
 <ParamList> -> <Param>(, <Param>)*
 <Param>     -> <Type><Ident>
 
-<StatList>  -> <Stat> (; <Stat>)*
+<StatList>  -> <Stat>; (<Stat>)*
 <Stat>      -> return <Expr>
 
-<Expr>      -> <Term> ((+|-) <Term>)* | <IntLit>
+<Expr>      -> <Term> ((+|-) <Term>)* | <>
 <Term>      -> <Factor> ((/|*) <Factor>)*
 <Factor>    -> <IntLit>
+<IntLit>    -> (0-9)+
+<Type> -> int

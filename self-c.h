@@ -48,7 +48,8 @@
     FUNC(AST_ARG_LIST)   \
     FUNC(AST_PARAM)      \
     FUNC(AST_PARAM_LIST) \
-    FUNC(AST_FUNC)
+    FUNC(AST_FUNC)       \
+    FUNC(AST_PROGRAM)
 
 /* Tokens */
 enum { ALL_TOKENS(TO_ENUM) } typedef TokenKind;
@@ -62,6 +63,7 @@ struct Token {
 enum { ALL_AST(TO_ENUM) } typedef AstType;
 extern const char *ast_type_string[];
 typedef struct Ast {
+    struct SymbolTable *symbol_table;
     AstType type;
     union {
         /* int literal */
@@ -114,6 +116,10 @@ typedef struct Ast {
             struct Ast *func_param_list;
             struct Ast *func_stat_list;
         };
+        /* program */
+        struct {
+            struct Vector *program;
+        };
     };
 } Ast;
 
@@ -156,15 +162,28 @@ void error_token_mismatch_group(const char *func_name, TokenKind token_actual, c
 void error_identifier_not_found(const char *func_name, char *ident) __attribute__((noreturn));
 
 /* symbol table */
-struct SymbolTable {
-    Map *offset_map;
+struct Symbol {
     int offset;
+} typedef Symbol;
+
+struct SymbolTable {
+    struct Map *symbols;
+    struct SymbolTable *parent;
+    struct Vector *childrens;
+    int variable_offset;
+    int param_offset;
 } typedef SymbolTable;
 
-void init_symbol_tables(void);
+void symbol_table_init(void);
+void symbol_table_open_scope(void);
+void symbol_table_close_scope(void);
 bool symbol_table_check_symbol(char *key);
-int symbol_table_get_offset(char *key);
-void symbol_table_add_offset(char *key);
+Symbol *symbol_table_get_symbol(char *key);
+Symbol *symbol_table_get_symbol_from_table(SymbolTable *table, char *key);
+void symbol_table_add_variable(char *key);
+void symbol_table_add_param(char *key);
+SymbolTable *symbol_table_current(void);
+void symbol_table_dump(SymbolTable *table);
 
 /* lexer */
 Vector *lex_init(void);

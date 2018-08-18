@@ -16,9 +16,16 @@ struct Parser {
 
 static void match(Token *token, TokenKind kind) {
     if (!is_token(token, kind)) {
+        printf("%d\n", token_index);
         error_token_mismatch(__func__, token->token_kind, kind);
     }
     token_index++;
+}
+
+static Ast *make_ast(void) {
+    Ast *ast = malloc(sizeof(Ast));
+    ast->symbol_table = symbol_table_current();
+    return ast;
 }
 
 static Ast *make_ast_int(int n) {
@@ -29,7 +36,7 @@ static Ast *make_ast_int(int n) {
 }
 
 static Ast *make_ast_ident(char *ident) {
-    Ast *ast = malloc(sizeof(Ast));
+    Ast *ast = make_ast();
     ast->type = AST_IDENT;
     ast->str_val = ident;
     return ast;
@@ -103,48 +110,6 @@ static Ast *read_term_tail(Ast *left) {
 
 static Ast *read_term() { return read_term_tail(read_factor()); }
 
-static Ast *read_arg() {
-    Ast *ast = malloc(sizeof(Ast));
-    ast->type = AST_ARG;
-    Token *token = vector_get(token_vec, token_index);
-    match(token, TOKEN_TYPE);
-    ast->arg_type = make_ast_type(token->token_val);
-
-    token = vector_get(token_vec, token_index);
-    match(token, TOKEN_IDENT);
-    ast->arg_name = token->token_val;
-    return ast;
-}
-
-static Ast *read_arg_list(TokenKind end_kind) {
-    Ast *ast = malloc(sizeof(Ast));
-    ast->type = AST_ARG_LIST;
-    ast->arg_list = vector_init();
-    for (;;) {
-        Token *token = vector_get(token_vec, token_index);
-        if (token->token_kind == end_kind) {
-            return ast;
-        }
-        vector_add(ast->arg_list, read_arg());
-        token = vector_get(token_vec, token_index);
-        if (token->token_kind == end_kind) {
-            return ast;
-        }
-        match(token, TOKEN_COMMA);
-    }
-}
-
-static Ast *read_func_call() {
-    Ast *ast = malloc(sizeof(Ast));
-    Token *token = vector_get(token_vec, token_index);
-    match(token, TOKEN_IDENT);
-    ast->func_call_name = make_ast_ident(token->token_val);
-    match(token, TOKEN_LPARAN);
-    ast->func_call_arg_list = read_arg_list(TOKEN_RPARAN);
-    match(token, TOKEN_RPARAN);
-    return ast;
-}
-
 static Ast *read_expr_tail(Ast *left) {
     if (token_vec->count == token_index) {
         return left;
@@ -167,12 +132,52 @@ static Ast *read_expr() {
     return read_expr_tail(left);
 }
 
+static Ast *read_arg_list(TokenKind end_kind) {
+    Ast *ast = malloc(sizeof(Ast));
+    ast->type = AST_ARG_LIST;
+    ast->arg_list = vector_init();
+    for (;;) {
+        Token *token = vector_get(token_vec, token_index);
+        if (token->token_kind == end_kind) {
+            return ast;
+        }
+        vector_add(ast->arg_list, read_expr());
+        token = vector_get(token_vec, token_index);
+        if (token->token_kind == end_kind) {
+            return ast;
+        }
+        match(token, TOKEN_COMMA);
+    }
+}
+
+static Ast *read_func_call() {
+    Ast *ast = malloc(sizeof(Ast));
+    ast->type = AST_FUNC_CALL;
+    Token *token = vector_get(token_vec, token_index);
+    match(token, TOKEN_IDENT);
+    ast->func_call_name = make_ast_ident(token->token_val);
+    token = vector_get(token_vec, token_index);
+    match(token, TOKEN_LPARAN);
+    ast->func_call_arg_list = read_arg_list(TOKEN_RPARAN);
+    token = vector_get(token_vec, token_index);
+    match(token, TOKEN_RPARAN);
+    return ast;
+}
+
+static Ast *read_rhs() {
+    if (is_token(vector_get(token_vec, token_index), TOKEN_IDENT) &&
+        is_token(vector_get(token_vec, token_index + 1), TOKEN_LPARAN)) {
+        return read_func_call();
+    }
+    return read_expr();
+}
+
 static Ast *read_stat_return() {
     Token *token = vector_get(token_vec, token_index);
     match(token, TOKEN_RETURN);
     Ast *ast = malloc(sizeof(Ast));
     ast->type = AST_RETURN;
-    ast->stat_rhs = read_expr();
+    ast->stat_rhs = read_rhs();
     return ast;
 }
 
@@ -184,13 +189,14 @@ static Ast *read_stat_assignment() {
     token = vector_get(token_vec, token_index);
     match(token, TOKEN_IDENT);
     ast->stat_lhs = make_ast_ident(token->token_val);
-    symbol_table_add_offset(token->token_val);
+    symbol_table_add_variable(token->token_val);
+    ast->symbol_table = symbol_table_current();
 
     token = vector_get(token_vec, token_index);
     match(token, TOKEN_EQU);
 
     ast->type = AST_ASSIGN;
-    ast->stat_rhs = read_expr();
+    ast->stat_rhs = read_rhs();
 
     return ast;
 }
@@ -234,6 +240,10 @@ static Ast *read_param() {
     token = vector_get(token_vec, token_index);
     match(token, TOKEN_IDENT);
     ast->param_name = token->token_val;
+
+    symbol_table_add_param(token->token_val);
+    ast->symbol_table = symbol_table_current();
+
     return ast;
 }
 
@@ -256,6 +266,7 @@ static Ast *read_param_list(TokenKind end_kind) {
 }
 
 static Ast *read_function() {
+    symbol_table_open_scope();
     Ast *ast = malloc(sizeof(Ast));
     ast->type = AST_FUNC;
     Token *token = vector_get(token_vec, token_index);
@@ -281,11 +292,19 @@ static Ast *read_function() {
 
     token = vector_get(token_vec, token_index);
     match(token, TOKEN_RPARAN_CURLY);
-
+    symbol_table_close_scope();
     return ast;
 }
 
-static Ast *read_program() { return read_function(); }
+static Ast *read_program() {
+    Ast *ast = malloc(sizeof(Ast));
+    ast->program = vector_init();
+    while (token_index != token_vec->count) {
+        Ast *function = read_function();
+        vector_add(ast->program, function);
+    }
+    return ast;
+}
 
 Ast *parse(Vector *vec) {
     token_index = 0;

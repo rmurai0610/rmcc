@@ -32,7 +32,7 @@ static void emit_expr(Ast *ast) {
         return;
     }
     if (ast->type == AST_IDENT) {
-        int offset = symbol_table_get_offset(ast->str_val) * 8;
+        int offset = symbol_table_get_symbol_from_table(ast->symbol_table, ast->str_val)->offset * 8;
         printf("\tmov rax, [rbp-%d]\n", offset);
         return;
     }
@@ -42,11 +42,13 @@ static void emit_expr(Ast *ast) {
 static void emit_stat(Ast *ast) {
     if (ast->type == AST_RETURN) {
         emit_expr(ast->stat_rhs);
+        printf("pop rsp\n");
+        printf("pop rbp\n");
         printf("\tret\n");
     }
     if (ast->type == AST_ASSIGN) {
         emit_expr(ast->stat_rhs);
-        int offset = symbol_table_get_offset(ast->stat_lhs->str_val) * 8;
+        int offset = symbol_table_get_symbol_from_table(ast->symbol_table, ast->stat_lhs->str_val)->offset * 8;
         printf("\tmov [rbp-%d], rax\n", offset);
     }
 }
@@ -59,12 +61,20 @@ static void emit_stat_list(Ast *ast) {
 
 static void emit_func(Ast *ast) {
     printf("%s:\n", ast->func_name->str_val);
+    printf("\tpush rbp\n");
+    printf("\tpush rsp\n");
     emit_stat_list(ast->func_stat_list);
+    printf("\tpop rsp\n");
+    printf("\tpop rbp\n");
+    printf("\tret\n");
 }
 
 static void emit_program(Ast *ast) {
-    if (ast->type == AST_FUNC) {
-        emit_func(ast);
+    for (int i = 0; i < ast->program->count; ++i) {
+        Ast *a = vector_get(ast->program, i);
+        if (a->type == AST_FUNC) {
+            emit_func(a);
+        }
     }
 }
 
