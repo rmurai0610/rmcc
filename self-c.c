@@ -3,6 +3,7 @@
 int main(int argc, char const *argv[]) {
     Vector *token_vec = lex_init();
     lex_scan(token_vec);
+    symbol_table_init();
     if (argc == 2) {
         if (!strcmp(argv[1], "-a")) {
             Ast *ast = parse(token_vec);
@@ -16,7 +17,6 @@ int main(int argc, char const *argv[]) {
             return 0;
         }
     } else {
-        symbol_table_init();
         Ast *ast = parse(token_vec);
         compile(ast);
     }

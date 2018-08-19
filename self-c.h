@@ -41,6 +41,7 @@
     FUNC(AST_INT)        \
     FUNC(AST_BIN_OP)     \
     FUNC(AST_RETURN)     \
+    FUNC(AST_LHS)        \
     FUNC(AST_ASSIGN)     \
     FUNC(AST_FUNC_CALL)  \
     FUNC(AST_STAT_LIST)  \
@@ -72,9 +73,14 @@ typedef struct Ast {
         char *str_val;
         /* binary operator */
         struct {
-            char op;
-            struct Ast *left;
-            struct Ast *right;
+            char bin_op;
+            struct Ast *bin_left;
+            struct Ast *bin_right;
+        };
+        /* lhs */
+        struct {
+            struct Ast *lhs_type;
+            struct Ast *lhs_ident;
         };
         /* stat */
         struct {
@@ -86,19 +92,10 @@ typedef struct Ast {
         struct {
             struct Vector *stat_list;
         };
-        /* param */
-        struct {
-            struct Ast *param_type;
-            char *param_name;
-        };
-        /* param list */
-        struct {
-            struct Vector *param_list;
-        };
         /* arg */
         struct {
             struct Ast *arg_type;
-            char *arg_name;
+            struct Ast *arg_name;
         };
         /* arg list */
         struct {
@@ -108,6 +105,15 @@ typedef struct Ast {
         struct {
             struct Ast *func_call_name;
             struct Ast *func_call_arg_list;
+        };
+        /* param */
+        struct {
+            struct Ast *param_type;
+            struct Ast *param_name;
+        };
+        /* param list */
+        struct {
+            struct Vector *param_list;
         };
         /* function */
         struct {
@@ -161,6 +167,9 @@ void error_token_mismatch(const char *func_name, TokenKind token_actual, TokenKi
 void error_token_mismatch_group(const char *func_name, TokenKind token_actual, char *group) __attribute__((noreturn));
 void error_identifier_not_found(const char *func_name, char *ident) __attribute__((noreturn));
 
+/* debug */
+void print_ast(Ast *ast);
+
 /* symbol table */
 struct Symbol {
     int offset;
@@ -192,7 +201,6 @@ void lex_print_tokens(Vector *token_vec);
 
 /* parser */
 Ast *parse(Vector *token_vec);
-void print_ast(Ast *ast);
 
 /* codegen */
 void compile(Ast *ast);

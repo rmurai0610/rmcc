@@ -2,7 +2,7 @@
 static void emit_expr(Ast *ast);
 static void emit_binop(Ast *ast) {
     char *op;
-    switch (ast->op) {
+    switch (ast->bin_op) {
         case '+':
             op = "add";
             break;
@@ -16,11 +16,11 @@ static void emit_binop(Ast *ast) {
             op = "idiv";
             break;
     }
-    emit_expr(ast->right);
+    emit_expr(ast->bin_right);
     printf("\tpush rax\n");
-    emit_expr(ast->left);
+    emit_expr(ast->bin_left);
     printf("\tpop rbx\n");
-    if (ast->op == '/') {
+    if (ast->bin_op == '/') {
         printf("\tcdq\n");
     }
     printf("\t%s rax, rbx\n", op);
@@ -42,8 +42,8 @@ static void emit_expr(Ast *ast) {
 static void emit_stat(Ast *ast) {
     if (ast->type == AST_RETURN) {
         emit_expr(ast->stat_rhs);
-        printf("pop rsp\n");
-        printf("pop rbp\n");
+        printf("\tpop rsp\n");
+        printf("\tpop rbp\n");
         printf("\tret\n");
     }
     if (ast->type == AST_ASSIGN) {
@@ -64,9 +64,9 @@ static void emit_func(Ast *ast) {
     printf("\tpush rbp\n");
     printf("\tpush rsp\n");
     emit_stat_list(ast->func_stat_list);
-    printf("\tpop rsp\n");
-    printf("\tpop rbp\n");
-    printf("\tret\n");
+    /*printf("\tpop rsp\n");*/
+    /*printf("\tpop rbp\n");*/
+    /*printf("\tret\n");*/
 }
 
 static void emit_program(Ast *ast) {

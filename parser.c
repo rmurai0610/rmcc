@@ -1,5 +1,7 @@
 #include "self-c.h"
 
+static Ast *read_func_call();
+
 const char *ast_type_string[] = {ALL_AST(TO_STRING)};
 
 static Vector *token_vec;
@@ -9,11 +11,6 @@ static int char2int(char c) { return c - '0'; }
 
 static bool is_token(Token *token, TokenKind kind) { return token->token_kind == kind; }
 
-struct Parser {
-    Vector *tokens;
-    int token_index;
-} typedef Parser;
-
 static void match(Token *token, TokenKind kind) {
     if (!is_token(token, kind)) {
         printf("%d\n", token_index);
@@ -22,14 +19,14 @@ static void match(Token *token, TokenKind kind) {
     token_index++;
 }
 
-static Ast *make_ast(void) {
+static Ast *make_ast() {
     Ast *ast = malloc(sizeof(Ast));
     ast->symbol_table = symbol_table_current();
     return ast;
 }
 
 static Ast *make_ast_int(int n) {
-    Ast *ast = malloc(sizeof(Ast));
+    Ast *ast = make_ast();
     ast->type = AST_INT;
     ast->int_val = n;
     return ast;
@@ -43,33 +40,33 @@ static Ast *make_ast_ident(char *ident) {
 }
 
 static Ast *make_ast_type(char *type) {
-    Ast *ast = malloc(sizeof(Ast));
+    Ast *ast = make_ast();
     ast->type = AST_TYPE;
     ast->str_val = type;
     return ast;
 }
 
 static Ast *make_ast_op(TokenKind op, Ast *left, Ast *right) {
-    Ast *ast = malloc(sizeof(Ast));
+    Ast *ast = make_ast();
     ast->type = AST_BIN_OP;
     switch (op) {
         case TOKEN_ADD:
-            ast->op = '+';
+            ast->bin_op = '+';
             break;
         case TOKEN_SUB:
-            ast->op = '-';
+            ast->bin_op = '-';
             break;
         case TOKEN_MUL:
-            ast->op = '*';
+            ast->bin_op = '*';
             break;
         case TOKEN_DIV:
-            ast->op = '/';
+            ast->bin_op = '/';
             break;
         default:
             error_token_mismatch_group(__func__, op, "binary operators");
     }
-    ast->left = left;
-    ast->right = right;
+    ast->bin_left = left;
+    ast->bin_right = right;
     return ast;
 }
 
@@ -124,16 +121,18 @@ static Ast *read_expr_tail(Ast *left) {
 }
 
 static Ast *read_expr() {
-    /*if (is_token(vector_get(token_vec, token_index), TOKEN_IDENT) &&*/
-    /*is_token(vector_get(token_vec, token_index + 1), TOKEN_LPARAN)) {*/
-    /*return read_func_call();*/
-    /*}*/
-    Ast *left = read_term();
+    Ast *left;
+    if (is_token(vector_get(token_vec, token_index), TOKEN_IDENT) &&
+        is_token(vector_get(token_vec, token_index + 1), TOKEN_LPARAN)) {
+        left = read_func_call();
+    } else {
+        left = read_term();
+    }
     return read_expr_tail(left);
 }
 
 static Ast *read_arg_list(TokenKind end_kind) {
-    Ast *ast = malloc(sizeof(Ast));
+    Ast *ast = make_ast();
     ast->type = AST_ARG_LIST;
     ast->arg_list = vector_init();
     for (;;) {
@@ -151,7 +150,7 @@ static Ast *read_arg_list(TokenKind end_kind) {
 }
 
 static Ast *read_func_call() {
-    Ast *ast = malloc(sizeof(Ast));
+    Ast *ast = make_ast();
     ast->type = AST_FUNC_CALL;
     Token *token = vector_get(token_vec, token_index);
     match(token, TOKEN_IDENT);
@@ -165,39 +164,46 @@ static Ast *read_func_call() {
 }
 
 static Ast *read_rhs() {
-    if (is_token(vector_get(token_vec, token_index), TOKEN_IDENT) &&
-        is_token(vector_get(token_vec, token_index + 1), TOKEN_LPARAN)) {
-        return read_func_call();
-    }
+    /*if (is_token(vector_get(token_vec, token_index), TOKEN_IDENT) &&*/
+    /*is_token(vector_get(token_vec, token_index + 1), TOKEN_LPARAN)) {*/
+    /*return read_func_call();*/
+    /*}*/
     return read_expr();
+}
+
+static Ast *read_lhs() {
+    Ast *ast = make_ast();
+    ast->type = AST_LHS;
+    Token *token = vector_get(token_vec, token_index);
+    if (is_token(token, TOKEN_TYPE)) {
+        match(token, TOKEN_TYPE);
+        ast->lhs_type = make_ast_type(token->token_val);
+    } else {
+        ast->lhs_type = NULL;
+    }
+    token = vector_get(token_vec, token_index);
+    match(token, TOKEN_IDENT);
+    ast->lhs_ident = make_ast_ident(token->token_val);
+    symbol_table_add_variable(token->token_val);
+    return ast;
 }
 
 static Ast *read_stat_return() {
     Token *token = vector_get(token_vec, token_index);
     match(token, TOKEN_RETURN);
-    Ast *ast = malloc(sizeof(Ast));
+    Ast *ast = make_ast();
     ast->type = AST_RETURN;
     ast->stat_rhs = read_rhs();
     return ast;
 }
 
 static Ast *read_stat_assignment() {
-    Token *token = vector_get(token_vec, token_index);
-    match(token, TOKEN_TYPE);
-    Ast *ast = malloc(sizeof(Ast));
-
-    token = vector_get(token_vec, token_index);
-    match(token, TOKEN_IDENT);
-    ast->stat_lhs = make_ast_ident(token->token_val);
-    symbol_table_add_variable(token->token_val);
-    ast->symbol_table = symbol_table_current();
-
-    token = vector_get(token_vec, token_index);
-    match(token, TOKEN_EQU);
-
+    Ast *ast = make_ast();
     ast->type = AST_ASSIGN;
+    ast->stat_lhs = read_lhs();
+    Token *token = vector_get(token_vec, token_index);
+    match(token, TOKEN_EQU);
     ast->stat_rhs = read_rhs();
-
     return ast;
 }
 
@@ -216,7 +222,7 @@ static Ast *read_stat() {
 }
 
 static Ast *read_stat_list(TokenKind end_kind) {
-    Ast *ast = malloc(sizeof(Ast));
+    Ast *ast = make_ast();
     ast->type = AST_STAT_LIST;
     ast->stat_list = vector_init();
     for (;;) {
@@ -231,7 +237,7 @@ static Ast *read_stat_list(TokenKind end_kind) {
 }
 
 static Ast *read_param() {
-    Ast *ast = malloc(sizeof(Ast));
+    Ast *ast = make_ast();
     ast->type = AST_PARAM;
     Token *token = vector_get(token_vec, token_index);
     match(token, TOKEN_TYPE);
@@ -239,16 +245,15 @@ static Ast *read_param() {
 
     token = vector_get(token_vec, token_index);
     match(token, TOKEN_IDENT);
-    ast->param_name = token->token_val;
+    ast->param_name = make_ast_ident(token->token_val);
 
     symbol_table_add_param(token->token_val);
-    ast->symbol_table = symbol_table_current();
 
     return ast;
 }
 
 static Ast *read_param_list(TokenKind end_kind) {
-    Ast *ast = malloc(sizeof(Ast));
+    Ast *ast = make_ast();
     ast->type = AST_PARAM_LIST;
     ast->param_list = vector_init();
     for (;;) {
@@ -267,7 +272,7 @@ static Ast *read_param_list(TokenKind end_kind) {
 
 static Ast *read_function() {
     symbol_table_open_scope();
-    Ast *ast = malloc(sizeof(Ast));
+    Ast *ast = make_ast();
     ast->type = AST_FUNC;
     Token *token = vector_get(token_vec, token_index);
     match(token, TOKEN_TYPE);
@@ -293,15 +298,19 @@ static Ast *read_function() {
     token = vector_get(token_vec, token_index);
     match(token, TOKEN_RPARAN_CURLY);
     symbol_table_close_scope();
+
     return ast;
 }
 
+static Ast *read_top_level() { return read_function(); }
+
 static Ast *read_program() {
-    Ast *ast = malloc(sizeof(Ast));
+    Ast *ast = make_ast();
+    ast->type = AST_PROGRAM;
     ast->program = vector_init();
     while (token_index != token_vec->count) {
-        Ast *function = read_function();
-        vector_add(ast->program, function);
+        Ast *top_level = read_top_level();
+        vector_add(ast->program, top_level);
     }
     return ast;
 }
@@ -312,18 +321,22 @@ Ast *parse(Vector *vec) {
     return read_program();
 }
 
-/* Debug utils */
-void print_ast(Ast *ast) {
-    /*switch (ast->type) {*/
-    /*case AST_INT:*/
-    /*printf("%d", ast->int_val);*/
-    /*break;*/
-    /*default:*/
-    /*printf("(%c", ast->type);*/
-    /*print_ast(ast->left);*/
-    /*printf(" ");*/
-    /*print_ast(ast->right);*/
-    /*printf(")");*/
-    /*break;*/
-    /*}*/
-}
+/*[> Debug utils <]*/
+/*void print_ast(Ast *ast) {*/
+/*//    switch (ast->type) {*/
+/*//        case AST_INT:*/
+/*//            printf("%d", ast->int_val);*/
+/*//            break;*/
+/*//        case AST_BIN_OP:*/
+/*//            printf("(%c", ast->op);*/
+/*//            print_ast(ast->left);*/
+/*//            printf(" ");*/
+/*//            print_ast(ast->right);*/
+/*//            printf(")");*/
+/*//            break;*/
+/*//        case AST_FUNC:*/
+/*//            printf("%s")*/
+/*//        default:*/
+/*//            break;*/
+/*//    }*/
+/*}*/
