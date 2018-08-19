@@ -46,5 +46,9 @@ test 10 'int a() { int a = 1; return 9 + a; } int main() { return a(); }'
 test 10 'int a() { int a = 1; return 5 + a; } int main() { return 4 + a();  }'
 test 10 'int a() { int a = 1; return 9 + a; } int main() { return 1 * a();  }'
 test 10 'int a(int a) { return a; } int main() { return 1 + a(9);  }'
-
+test 10 'int a(int a, int b) { return a + b; } int main() { return  a(1, 9);  }'
+test 10 'int b (int i) { return i + 1; } int a(int i) { return b(i); } int main() { return a(9); }'
+test 10 'int main() { if (1) { return 10; } return 0; }'
+test 10 'int main() { if (0) { return 0; } return 10; }'
+test 10 'int a() { return 1; } int main() { if (a()) { return 10; } return 0; }'
 echo "All tests passed"

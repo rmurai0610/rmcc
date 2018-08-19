@@ -22,6 +22,7 @@
     FUNC(TOKEN_SEMICOLON)    \
     /* reserved keywords */  \
     FUNC(TOKEN_RETURN)       \
+    FUNC(TOKEN_IF)           \
     /* operators */          \
     FUNC(TOKEN_ADD)          \
     FUNC(TOKEN_SUB)          \
@@ -41,6 +42,7 @@
     FUNC(AST_INT)        \
     FUNC(AST_BIN_OP)     \
     FUNC(AST_RETURN)     \
+    FUNC(AST_IF)         \
     FUNC(AST_LHS)        \
     FUNC(AST_ASSIGN)     \
     FUNC(AST_FUNC_CALL)  \
@@ -85,6 +87,11 @@ typedef struct Ast {
         struct {
             struct Ast *lhs_type;
             struct Ast *lhs_ident;
+        };
+        /*if */
+        struct {
+            struct Ast *if_cond;
+            struct Ast *if_branch;
         };
         /* stat */
         struct {

@@ -1,5 +1,8 @@
 #include "self-c.h"
 static void emit_expr(Ast *ast);
+static void emit_stat_list(Ast *ast);
+
+static int if_jump = 0;
 
 static int get_ident_offset(Ast *ast) {
     char *ident = ast->str_val;
@@ -81,6 +84,13 @@ static void emit_stat(Ast *ast) {
             printf("\tmov [rbp+%d], rax\n", -offset);
         }
     }
+    if (ast->type == AST_IF) {
+        emit_expr(ast->if_cond);
+        printf("\tcmp rax, 0\n");
+        printf("\tje if_end_%d\n", if_jump);
+        emit_stat_list(ast->if_branch);
+        printf("if_end_%d:\n", if_jump++);
+    }
 }
 
 static void emit_stat_list(Ast *ast) {
@@ -95,9 +105,6 @@ static void emit_func(Ast *ast) {
     printf("\tmov rbp, rsp\n");
     printf("\tsub rsp, %d\n", (ast->symbol_table->variable_offset - 1) * 8);
     emit_stat_list(ast->func_stat_list);
-    /*printf("\tpop rsp\n");*/
-    /*printf("\tpop rbp\n");*/
-    /*printf("\tret\n");*/
 }
 
 static void emit_program(Ast *ast) {

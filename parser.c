@@ -1,6 +1,7 @@
 #include "self-c.h"
 
 static Ast *read_func_call();
+static Ast *read_stat_list(TokenKind end_kind);
 
 const char *ast_type_string[] = {ALL_AST(TO_STRING)};
 
@@ -158,13 +159,7 @@ static Ast *read_func_call() {
     return ast;
 }
 
-static Ast *read_rhs() {
-    /*if (is_token(vector_get(token_vec, token_index), TOKEN_IDENT) &&*/
-    /*is_token(vector_get(token_vec, token_index + 1), TOKEN_LPARAN)) {*/
-    /*return read_func_call();*/
-    /*}*/
-    return read_expr();
-}
+static Ast *read_rhs() { return read_expr(); }
 
 static Ast *read_lhs() {
     Ast *ast = make_ast();
@@ -192,6 +187,26 @@ static Ast *read_stat_return() {
     return ast;
 }
 
+static Ast *read_stat_if() {
+    Token *token = vector_get(token_vec, token_index);
+    match(token, TOKEN_IF);
+    Ast *ast = make_ast();
+    ast->type = AST_IF;
+    token = vector_get(token_vec, token_index);
+    match(token, TOKEN_LPARAN);
+    ast->if_cond = read_expr();
+    token = vector_get(token_vec, token_index);
+    match(token, TOKEN_RPARAN);
+    token = vector_get(token_vec, token_index);
+    match(token, TOKEN_LPARAN_CURLY);
+    symbol_table_open_scope();
+    ast->if_branch = read_stat_list(TOKEN_RPARAN_CURLY);
+    symbol_table_close_scope();
+    token = vector_get(token_vec, token_index);
+    match(token, TOKEN_RPARAN_CURLY);
+    return ast;
+}
+
 static Ast *read_stat_assignment() {
     Ast *ast = make_ast();
     ast->type = AST_ASSIGN;
@@ -204,14 +219,23 @@ static Ast *read_stat_assignment() {
 
 static Ast *read_stat() {
     Token *token = vector_get(token_vec, token_index);
+    if (is_token(token, TOKEN_IF)) {
+        return read_stat_if();
+    }
+    Ast *ast = NULL;
     if (is_token(token, TOKEN_RETURN)) {
-        return read_stat_return();
+        ast = read_stat_return();
     }
     if (is_token(token, TOKEN_TYPE)) {
-        return read_stat_assignment();
+        ast = read_stat_assignment();
     }
     if (is_token(token, TOKEN_IDENT)) {
-        return read_expr();
+        ast = read_expr();
+    }
+    if (ast != NULL) {
+        token = vector_get(token_vec, token_index);
+        match(token, TOKEN_SEMICOLON);
+        return ast;
     }
     error_token_mismatch_group(__func__, token->token_kind, "statement");
 }
@@ -227,7 +251,6 @@ static Ast *read_stat_list(TokenKind end_kind) {
         }
         vector_add(ast->stat_list, read_stat());
         token = vector_get(token_vec, token_index);
-        match(token, TOKEN_SEMICOLON);
     }
 }
 
@@ -315,23 +338,3 @@ Ast *parse(Vector *vec) {
     token_vec = vec;
     return read_program();
 }
-
-/*[> Debug utils <]*/
-/*void print_ast(Ast *ast) {*/
-/*//    switch (ast->type) {*/
-/*//        case AST_INT:*/
-/*//            printf("%d", ast->int_val);*/
-/*//            break;*/
-/*//        case AST_BIN_OP:*/
-/*//            printf("(%c", ast->op);*/
-/*//            print_ast(ast->left);*/
-/*//            printf(" ");*/
-/*//            print_ast(ast->right);*/
-/*//            printf(")");*/
-/*//            break;*/
-/*//        case AST_FUNC:*/
-/*//            printf("%s")*/
-/*//        default:*/
-/*//            break;*/
-/*//    }*/
-/*}*/

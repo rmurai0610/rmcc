@@ -88,6 +88,9 @@ static void make_ident_or_type(Token *token, char c) {
             if (!strcmp(buf, "return")) {
                 token->token_kind = TOKEN_RETURN;
             }
+            if (!strcmp(buf, "if")) {
+                token->token_kind = TOKEN_IF;
+            }
             if (!strcmp(buf, "int")) {
                 token->token_kind = TOKEN_TYPE;
             }
@@ -147,6 +150,6 @@ void lex_scan(Vector *token_vec) {
 void lex_print_tokens(Vector *token_vec) {
     for (int i = 0; i < token_vec->count; ++i) {
         Token *token = vector_get(token_vec, i);
-        printf("%s\n", token_kind_string[token->token_kind]);
+        printf("%03d %s\n", i, token_kind_string[token->token_kind]);
     }
 }

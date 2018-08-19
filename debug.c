@@ -34,6 +34,12 @@ void print_ast(Ast *ast) {
             printf("RETURN ");
             print_ast(ast->stat_rhs);
             break;
+        case AST_IF:
+            printf("IF ");
+            print_ast(ast->if_cond);
+            printf("\n");
+            print_ast(ast->if_branch);
+            break;
         case AST_ASSIGN:
             print_ast(ast->stat_lhs);
             printf(" = ");
