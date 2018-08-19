@@ -81,6 +81,10 @@ static Ast *read_int_lit(char *val) {
 
 static Ast *read_factor() {
     Token *token = vector_get(token_vec, token_index);
+    if (is_token(vector_get(token_vec, token_index), TOKEN_IDENT) &&
+        is_token(vector_get(token_vec, token_index + 1), TOKEN_LPARAN)) {
+        return read_func_call();
+    }
     if (is_token(token, TOKEN_IDENT)) {
         if (!symbol_table_check_symbol(token->token_val)) {
             error_identifier_not_found(__func__, token->token_val);
@@ -120,16 +124,7 @@ static Ast *read_expr_tail(Ast *left) {
     return read_expr_tail(make_ast_op(token->token_kind, left, right));
 }
 
-static Ast *read_expr() {
-    Ast *left;
-    if (is_token(vector_get(token_vec, token_index), TOKEN_IDENT) &&
-        is_token(vector_get(token_vec, token_index + 1), TOKEN_LPARAN)) {
-        left = read_func_call();
-    } else {
-        left = read_term();
-    }
-    return read_expr_tail(left);
-}
+static Ast *read_expr() { return read_expr_tail(read_term()); }
 
 static Ast *read_arg_list(TokenKind end_kind) {
     Ast *ast = make_ast();

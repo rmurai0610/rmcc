@@ -1,5 +1,18 @@
 #include "self-c.h"
 static void emit_expr(Ast *ast);
+
+static int get_ident_offset(Ast *ast) {
+    char *ident = ast->str_val;
+    Symbol *symbol = symbol_table_get_symbol_from_table(ast->symbol_table, ident);
+    if (symbol->type == SYMBOL_VARIABLE) {
+        return symbol->offset * 8;
+    }
+    if (symbol->type == SYMBOL_PARAM) {
+        return -(symbol->offset * 8 + 8);
+    }
+    return 0;
+}
+
 static void emit_binop(Ast *ast) {
     char *op;
     switch (ast->bin_op) {
@@ -29,28 +42,44 @@ static void emit_binop(Ast *ast) {
 static void emit_expr(Ast *ast) {
     if (ast->type == AST_INT) {
         printf("\tmov rax, %d\n", ast->int_val);
-        return;
     }
     if (ast->type == AST_IDENT) {
-        int offset = symbol_table_get_symbol_from_table(ast->symbol_table, ast->str_val)->offset * 8;
-        printf("\tmov rax, [rbp-%d]\n", offset);
-        return;
+        int offset = get_ident_offset(ast);
+        if (offset >= 0) {
+            printf("\tmov rax, [rbp-%d]\n", offset);
+        } else {
+            printf("\tmov rax, [rbp+%d]\n", -offset);
+        }
     }
-    emit_binop(ast);
+    if (ast->type == AST_FUNC_CALL) {
+        Vector *arguments = ast->func_call_arg_list->arg_list;
+        for (int i = arguments->count - 1; i >= 0; --i) {
+            Ast *arg = vector_get(arguments, i);
+            emit_expr(arg);
+            printf("\tpush rax\n");
+        }
+        printf("\tcall %s\n", ast->func_name->str_val);
+    }
+    if (ast->type == AST_BIN_OP) {
+        emit_binop(ast);
+    }
 }
 
 static void emit_stat(Ast *ast) {
     if (ast->type == AST_RETURN) {
         emit_expr(ast->stat_rhs);
-        printf("\tpop rsp\n");
+        printf("\tmov rsp, rbp\n");
         printf("\tpop rbp\n");
         printf("\tret\n");
     }
     if (ast->type == AST_ASSIGN) {
         emit_expr(ast->stat_rhs);
-        char *symbol = ast->stat_lhs->lhs_ident->str_val;
-        int offset = symbol_table_get_symbol_from_table(ast->symbol_table, symbol)->offset * 8;
-        printf("\tmov [rbp-%d], rax\n", offset);
+        int offset = get_ident_offset(ast->stat_lhs->lhs_ident);
+        if (offset >= 0) {
+            printf("\tmov [rbp-%d], rax\n", offset);
+        } else {
+            printf("\tmov [rbp+%d], rax\n", -offset);
+        }
     }
 }
 
@@ -63,7 +92,8 @@ static void emit_stat_list(Ast *ast) {
 static void emit_func(Ast *ast) {
     printf("%s:\n", ast->func_name->str_val);
     printf("\tpush rbp\n");
-    printf("\tpush rsp\n");
+    printf("\tmov rbp, rsp\n");
+    printf("\tsub rsp, %d\n", (ast->symbol_table->variable_offset - 1) * 8);
     emit_stat_list(ast->func_stat_list);
     /*printf("\tpop rsp\n");*/
     /*printf("\tpop rbp\n");*/

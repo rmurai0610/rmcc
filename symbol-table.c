@@ -57,12 +57,14 @@ Symbol *symbol_table_get_symbol_from_table(SymbolTable *table, char *key) {
 
 void symbol_table_add_variable(char *key) {
     Symbol *symbol = malloc(sizeof(Symbol));
+    symbol->type = SYMBOL_VARIABLE;
     symbol->offset = current_table->variable_offset++;
     map_add(current_table->symbols, key, symbol);
 }
 
 void symbol_table_add_param(char *key) {
     Symbol *symbol = malloc(sizeof(Symbol));
+    symbol->type = SYMBOL_PARAM;
     symbol->offset = current_table->param_offset++;
     map_add(current_table->symbols, key, symbol);
 }

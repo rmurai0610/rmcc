@@ -52,6 +52,10 @@
     FUNC(AST_FUNC)       \
     FUNC(AST_PROGRAM)
 
+#define ALL_SYMBOL_TYPE(FUNC) \
+    FUNC(SYMBOL_VARIABLE)     \
+    FUNC(SYMBOL_PARAM)
+
 /* Tokens */
 enum { ALL_TOKENS(TO_ENUM) } typedef TokenKind;
 extern const char *token_kind_string[];
@@ -171,7 +175,9 @@ void error_identifier_not_found(const char *func_name, char *ident) __attribute_
 void print_ast(Ast *ast);
 
 /* symbol table */
+enum { ALL_SYMBOL_TYPE(TO_ENUM) } typedef SymbolType;
 struct Symbol {
+    SymbolType type;
     int offset;
 } typedef Symbol;
 

@@ -41,5 +41,10 @@ test 10 'int main() { return 3 * 3 + 1; }'
 test 10 'int main() { return 3 * 1 + 6 / 2 + 4; }'
 test 10 'int main() { return 6 / 1 / 6 + 9; }'
 test 10 'int main() { int a = 9; int b = 1; return a + b; }'
+test 10 'int a() { return 10; } int main() { return a(); }'
+test 10 'int a() { int a = 1; return 9 + a; } int main() { return a(); }'
+test 10 'int a() { int a = 1; return 5 + a; } int main() { return 4 + a();  }'
+test 10 'int a() { int a = 1; return 9 + a; } int main() { return 1 * a();  }'
+test 10 'int a(int a) { return a; } int main() { return 1 + a(9);  }'
 
 echo "All tests passed"
