@@ -48,7 +48,8 @@ static void emit_stat(Ast *ast) {
     }
     if (ast->type == AST_ASSIGN) {
         emit_expr(ast->stat_rhs);
-        int offset = symbol_table_get_symbol_from_table(ast->symbol_table, ast->stat_lhs->str_val)->offset * 8;
+        char *symbol = ast->stat_lhs->lhs_ident->str_val;
+        int offset = symbol_table_get_symbol_from_table(ast->symbol_table, symbol)->offset * 8;
         printf("\tmov [rbp-%d], rax\n", offset);
     }
 }
