@@ -29,6 +29,11 @@
     FUNC(TOKEN_MUL)          \
     FUNC(TOKEN_DIV)          \
     FUNC(TOKEN_EQU)          \
+    FUNC(TOKEN_DOUBLE_EQU)   \
+    FUNC(TOKEN_LT)           \
+    FUNC(TOKEN_GT)           \
+    FUNC(TOKEN_LTE)          \
+    FUNC(TOKEN_GTE)          \
     /* identifier */         \
     FUNC(TOKEN_IDENT)        \
     /* types */              \
@@ -54,6 +59,17 @@
     FUNC(AST_FUNC)       \
     FUNC(AST_PROGRAM)
 
+#define ALL_BIN_OP(FUNC) \
+    FUNC(BIN_ADD)        \
+    FUNC(BIN_SUB)        \
+    FUNC(BIN_MUL)        \
+    FUNC(BIN_DIV)        \
+    FUNC(BIN_DOUBLE_EQU) \
+    FUNC(BIN_GT)         \
+    FUNC(BIN_GTE)        \
+    FUNC(BIN_LT)         \
+    FUNC(BIN_LTE)
+
 #define ALL_SYMBOL_TYPE(FUNC) \
     FUNC(SYMBOL_VARIABLE)     \
     FUNC(SYMBOL_PARAM)
@@ -68,6 +84,7 @@ struct Token {
 
 /* AST */
 enum { ALL_AST(TO_ENUM) } typedef AstType;
+enum { ALL_BIN_OP(TO_ENUM) } typedef BinOp;
 extern const char *ast_type_string[];
 typedef struct Ast {
     struct SymbolTable *symbol_table;
@@ -79,7 +96,7 @@ typedef struct Ast {
         char *str_val;
         /* binary operator */
         struct {
-            char bin_op;
+            BinOp bin_op;
             struct Ast *bin_left;
             struct Ast *bin_right;
         };
@@ -179,6 +196,7 @@ void error_token_mismatch_group(const char *func_name, TokenKind token_actual, c
 void error_identifier_not_found(const char *func_name, char *ident) __attribute__((noreturn));
 
 /* debug */
+void lex_print_tokens(Vector *token_vec);
 void print_ast(Ast *ast);
 
 /* symbol table */
@@ -210,7 +228,6 @@ void symbol_table_dump(SymbolTable *table);
 /* lexer */
 Vector *lex_init(void);
 void lex_scan(Vector *vec);
-void lex_print_tokens(Vector *token_vec);
 
 /* parser */
 Ast *parse(Vector *token_vec);

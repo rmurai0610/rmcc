@@ -1,5 +1,4 @@
 #include "self-c.h"
-const char *token_kind_string[] = {ALL_TOKENS(TO_STRING)};
 
 static void skip_space(void) {
     int c;
@@ -26,7 +25,31 @@ static void make_operator(Token *token, char c) {
             token->token_kind = TOKEN_DIV;
             break;
         case '=':
-            token->token_kind = TOKEN_EQU;
+            c = getc(stdin);
+            if (c == '=') {
+                token->token_kind = TOKEN_DOUBLE_EQU;
+            } else {
+                ungetc(c, stdin);
+                token->token_kind = TOKEN_EQU;
+            }
+            break;
+        case '>':
+            c = getc(stdin);
+            if (c == '=') {
+                token->token_kind = TOKEN_GTE;
+            } else {
+                ungetc(c, stdin);
+                token->token_kind = TOKEN_GT;
+            }
+            break;
+        case '<':
+            c = getc(stdin);
+            if (c == '=') {
+                token->token_kind = TOKEN_LTE;
+            } else {
+                ungetc(c, stdin);
+                token->token_kind = TOKEN_LT;
+            }
             break;
         default:
             error_unexpected_token(__func__, c);
@@ -121,6 +144,8 @@ void lex_scan(Vector *token_vec) {
             case '*':
             case '/':
             case '=':
+            case '<':
+            case '>':
                 make_operator(token, c);
                 break;
             case '{':
@@ -143,13 +168,5 @@ void lex_scan(Vector *token_vec) {
                 error_unexpected_token(__func__, c);
         }
         vector_add(token_vec, token);
-    }
-}
-
-/* Debug utils */
-void lex_print_tokens(Vector *token_vec) {
-    for (int i = 0; i < token_vec->count; ++i) {
-        Token *token = vector_get(token_vec, i);
-        printf("%03d %s\n", i, token_kind_string[token->token_kind]);
     }
 }

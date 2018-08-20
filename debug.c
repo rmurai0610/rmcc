@@ -1,4 +1,17 @@
 #include "self-c.h"
+const char *token_kind_string[] = {ALL_TOKENS(TO_STRING)};
+const char *ast_type_string[] = {ALL_AST(TO_STRING)};
+const char *bin_op_string[] = {ALL_BIN_OP(TO_STRING)};
+
+static const char *bin_op2str(BinOp op) { return bin_op_string[op]; }
+/*static const char *ast_type2str(AstType type) { return ast_type_string[type]; }*/
+
+void lex_print_tokens(Vector *token_vec) {
+    for (int i = 0; i < token_vec->count; ++i) {
+        Token *token = vector_get(token_vec, i);
+        printf("%03d %s\n", i, token_kind_string[token->token_kind]);
+    }
+}
 
 void print_ast(Ast *ast) {
     switch (ast->type) {
@@ -13,8 +26,9 @@ void print_ast(Ast *ast) {
             break;
         case AST_BIN_OP:
             printf("(");
+            printf("%s ", bin_op2str(ast->bin_op));
             print_ast(ast->bin_left);
-            printf(" %c ", ast->bin_op);
+            printf(" ");
             print_ast(ast->bin_right);
             printf(")");
             break;

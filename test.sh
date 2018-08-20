@@ -51,4 +51,12 @@ test 10 'int b (int i) { return i + 1; } int a(int i) { return b(i); } int main(
 test 10 'int main() { if (1) { return 10; } return 0; }'
 test 10 'int main() { if (0) { return 0; } return 10; }'
 test 10 'int a() { return 1; } int main() { if (a()) { return 10; } return 0; }'
+test 10 'int main() { if (2 == 2) { return 10; } return 0; }'
+test 10 'int main() { if (1 <= 2) { return 10; } return 0; }'
+test 10 'int main() { if (2 <= 2) { return 10; } return 0; }'
+test 10 'int main() { if (3 > 2) { return 10; } return 0; }'
+test 10 'int main() { if (3 >= 2) { return 10; } return 0; }'
+test 1 'int fib(int i) { if (i <= 2) { return 1; } return fib(i - 1) + fib(i - 2); } int main() { return fib(1); }'
+test 1 'int fib(int i) { if (i <= 2) { return 1; } return fib(i - 1) + fib(i - 2); } int main() { return fib(2); }'
+test 55 'int fib(int i) { if (i <= 2) { return 1; } return fib(i - 1) + fib(i - 2); } int main() { return fib(10); }'
 echo "All tests passed"

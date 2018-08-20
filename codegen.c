@@ -19,24 +19,46 @@ static int get_ident_offset(Ast *ast) {
 static void emit_binop(Ast *ast) {
     char *op;
     switch (ast->bin_op) {
-        case '+':
+        case BIN_ADD:
             op = "add";
             break;
-        case '-':
+        case BIN_SUB:
             op = "sub";
             break;
-        case '*':
+        case BIN_MUL:
             op = "imul";
             break;
-        case '/':
+        case BIN_DIV:
             op = "idiv";
+            break;
+        case BIN_DOUBLE_EQU:
+            op = "sete";
+            break;
+        case BIN_GT:
+            op = "setg";
+            break;
+        case BIN_GTE:
+            op = "setge";
+            break;
+        case BIN_LT:
+            op = "setl";
+            break;
+        case BIN_LTE:
+            op = "setle";
             break;
     }
     emit_expr(ast->bin_right);
     printf("\tpush rax\n");
     emit_expr(ast->bin_left);
     printf("\tpop rbx\n");
-    if (ast->bin_op == '/') {
+    if (ast->bin_op == BIN_DOUBLE_EQU || ast->bin_op == BIN_GT || ast->bin_op == BIN_GTE || ast->bin_op == BIN_LT ||
+        ast->bin_op == BIN_LTE) {
+        printf("\tcmp rax, rbx\n");
+        printf("\t%s al\n", op);
+        printf("\tmovzx rax, al\n");
+        return;
+    }
+    if (ast->bin_op == BIN_DIV) {
         printf("\tcdq\n");
     }
     printf("\t%s rax, rbx\n", op);
@@ -62,6 +84,7 @@ static void emit_expr(Ast *ast) {
             printf("\tpush rax\n");
         }
         printf("\tcall %s\n", ast->func_name->str_val);
+        printf("\tadd rsp, %d\n", 8 * arguments->count);
     }
     if (ast->type == AST_BIN_OP) {
         emit_binop(ast);

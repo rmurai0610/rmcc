@@ -3,8 +3,6 @@
 static Ast *read_func_call();
 static Ast *read_stat_list(TokenKind end_kind);
 
-const char *ast_type_string[] = {ALL_AST(TO_STRING)};
-
 static Vector *token_vec;
 static int token_index;
 
@@ -52,16 +50,31 @@ static Ast *make_ast_op(TokenKind op, Ast *left, Ast *right) {
     ast->type = AST_BIN_OP;
     switch (op) {
         case TOKEN_ADD:
-            ast->bin_op = '+';
+            ast->bin_op = BIN_ADD;
             break;
         case TOKEN_SUB:
-            ast->bin_op = '-';
+            ast->bin_op = BIN_SUB;
             break;
         case TOKEN_MUL:
-            ast->bin_op = '*';
+            ast->bin_op = BIN_MUL;
             break;
         case TOKEN_DIV:
-            ast->bin_op = '/';
+            ast->bin_op = BIN_DIV;
+            break;
+        case TOKEN_DOUBLE_EQU:
+            ast->bin_op = BIN_DOUBLE_EQU;
+            break;
+        case TOKEN_GT:
+            ast->bin_op = BIN_GT;
+            break;
+        case TOKEN_GTE:
+            ast->bin_op = BIN_GTE;
+            break;
+        case TOKEN_LT:
+            ast->bin_op = BIN_LT;
+            break;
+        case TOKEN_LTE:
+            ast->bin_op = BIN_LTE;
             break;
         default:
             error_token_mismatch_group(__func__, op, "binary operators");
@@ -97,7 +110,7 @@ static Ast *read_factor() {
     return read_int_lit(token->token_val);
 }
 
-static Ast *read_term_tail(Ast *left) {
+static Ast *read_multiplicative_expr_tail(Ast *left) {
     if (token_vec->count == token_index) {
         return left;
     }
@@ -107,12 +120,12 @@ static Ast *read_term_tail(Ast *left) {
     }
     token_index++;
     Ast *right = read_factor();
-    return read_term_tail(make_ast_op(token->token_kind, left, right));
+    return read_multiplicative_expr_tail(make_ast_op(token->token_kind, left, right));
 }
 
-static Ast *read_term() { return read_term_tail(read_factor()); }
+static Ast *read_multiplicative_expr() { return read_multiplicative_expr_tail(read_factor()); }
 
-static Ast *read_expr_tail(Ast *left) {
+static Ast *read_additive_expr_tail(Ast *left) {
     if (token_vec->count == token_index) {
         return left;
     }
@@ -121,11 +134,43 @@ static Ast *read_expr_tail(Ast *left) {
         return left;
     }
     token_index++;
-    Ast *right = read_term();
-    return read_expr_tail(make_ast_op(token->token_kind, left, right));
+    Ast *right = read_multiplicative_expr();
+    return read_additive_expr_tail(make_ast_op(token->token_kind, left, right));
 }
 
-static Ast *read_expr() { return read_expr_tail(read_term()); }
+static Ast *read_additive_expr() { return read_additive_expr_tail(read_multiplicative_expr()); }
+
+static Ast *read_relational_expr_tail(Ast *left) {
+    if (token_vec->count == token_index) {
+        return left;
+    }
+    Token *token = vector_get(token_vec, token_index);
+    if (!(token->token_kind == TOKEN_GT || token->token_kind == TOKEN_GTE || token->token_kind == TOKEN_LT ||
+          token->token_kind == TOKEN_LTE)) {
+        return left;
+    }
+    token_index++;
+    Ast *right = read_additive_expr();
+    return read_relational_expr_tail(make_ast_op(token->token_kind, left, right));
+}
+
+static Ast *read_relational_expr() { return read_relational_expr_tail(read_additive_expr()); }
+
+static Ast *read_equality_expr_tail(Ast *left) {
+    if (token_vec->count == token_index) {
+        return left;
+    }
+    Token *token = vector_get(token_vec, token_index);
+    if (!(token->token_kind == TOKEN_DOUBLE_EQU)) {
+        return left;
+    }
+    token_index++;
+    Ast *right = read_relational_expr();
+    return read_equality_expr_tail(make_ast_op(token->token_kind, left, right));
+}
+
+static Ast *read_equality_expr() { return read_equality_expr_tail(read_relational_expr()); }
+static Ast *read_expr() { return read_equality_expr(); }
 
 static Ast *read_arg_list(TokenKind end_kind) {
     Ast *ast = make_ast();
