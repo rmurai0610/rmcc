@@ -54,10 +54,21 @@ void print_ast(Ast *ast) {
             printf("\n");
             print_ast(ast->if_branch);
             break;
+        case AST_FOR:
+            printf("FOR");
+            printf("\nINIT: \n");
+            print_ast(ast->for_init);
+            printf("\nCOND: \n");
+            print_ast(ast->for_cond);
+            printf("\nUPDATE: \n");
+            print_ast(ast->for_update);
+            printf("\nBODY: \n");
+            print_ast(ast->for_body);
+            break;
         case AST_ASSIGN:
-            print_ast(ast->stat_lhs);
+            print_ast(ast->assign_lhs);
             printf(" = ");
-            print_ast(ast->stat_rhs);
+            print_ast(ast->assign_rhs);
             break;
         case AST_STAT_LIST:
             for (int i = 0; i < ast->stat_list->count; ++i) {

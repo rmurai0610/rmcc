@@ -3,6 +3,7 @@ static void emit_expr(Ast *ast);
 static void emit_stat_list(Ast *ast);
 
 static int if_jump = 0;
+static int for_jump = 0;
 
 static int get_ident_offset(Ast *ast) {
     char *ident = ast->str_val;
@@ -89,6 +90,15 @@ static void emit_expr(Ast *ast) {
     if (ast->type == AST_BIN_OP) {
         emit_binop(ast);
     }
+    if (ast->type == AST_ASSIGN) {
+        emit_expr(ast->assign_rhs);
+        int offset = get_ident_offset(ast->assign_lhs->lhs_ident);
+        if (offset >= 0) {
+            printf("\tmov [rbp-%d], rax\n", offset);
+        } else {
+            printf("\tmov [rbp+%d], rax\n", -offset);
+        }
+    }
 }
 
 static void emit_stat(Ast *ast) {
@@ -97,15 +107,7 @@ static void emit_stat(Ast *ast) {
         printf("\tmov rsp, rbp\n");
         printf("\tpop rbp\n");
         printf("\tret\n");
-    }
-    if (ast->type == AST_ASSIGN) {
-        emit_expr(ast->stat_rhs);
-        int offset = get_ident_offset(ast->stat_lhs->lhs_ident);
-        if (offset >= 0) {
-            printf("\tmov [rbp-%d], rax\n", offset);
-        } else {
-            printf("\tmov [rbp+%d], rax\n", -offset);
-        }
+        return;
     }
     if (ast->type == AST_IF) {
         emit_expr(ast->if_cond);
@@ -113,7 +115,21 @@ static void emit_stat(Ast *ast) {
         printf("\tje if_end_%d\n", if_jump);
         emit_stat_list(ast->if_branch);
         printf("if_end_%d:\n", if_jump++);
+        return;
     }
+    if (ast->type == AST_FOR) {
+        emit_expr(ast->for_init);
+        printf("for_begin_%d:\n", for_jump);
+        emit_expr(ast->for_cond);
+        printf("\tcmp rax, 0\n");
+        printf("\tje for_end_%d\n", if_jump);
+        emit_expr(ast->for_update);
+        emit_stat_list(ast->for_body);
+        printf("\tjmp for_begin_%d\n", for_jump);
+        printf("for_end_%d:\n", for_jump++);
+        return;
+    }
+    emit_expr(ast);
 }
 
 static void emit_stat_list(Ast *ast) {

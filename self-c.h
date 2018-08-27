@@ -23,6 +23,7 @@
     /* reserved keywords */  \
     FUNC(TOKEN_RETURN)       \
     FUNC(TOKEN_IF)           \
+    FUNC(TOKEN_FOR)          \
     /* operators */          \
     FUNC(TOKEN_ADD)          \
     FUNC(TOKEN_SUB)          \
@@ -30,6 +31,8 @@
     FUNC(TOKEN_DIV)          \
     FUNC(TOKEN_EQU)          \
     FUNC(TOKEN_DOUBLE_EQU)   \
+    FUNC(TOKEN_NOT)          \
+    FUNC(TOKEN_NOT_EQU)      \
     FUNC(TOKEN_LT)           \
     FUNC(TOKEN_GT)           \
     FUNC(TOKEN_LTE)          \
@@ -48,6 +51,7 @@
     FUNC(AST_BIN_OP)     \
     FUNC(AST_RETURN)     \
     FUNC(AST_IF)         \
+    FUNC(AST_FOR)        \
     FUNC(AST_LHS)        \
     FUNC(AST_ASSIGN)     \
     FUNC(AST_FUNC_CALL)  \
@@ -80,6 +84,8 @@ extern const char *token_kind_string[];
 struct Token {
     TokenKind token_kind;
     char *token_val;
+    int line_no;
+    int col_no;
 } typedef Token;
 
 /* AST */
@@ -100,6 +106,11 @@ typedef struct Ast {
             struct Ast *bin_left;
             struct Ast *bin_right;
         };
+        /* assignment */
+        struct {
+            struct Ast *assign_lhs;
+            struct Ast *assign_rhs;
+        };
         /* lhs */
         struct {
             struct Ast *lhs_type;
@@ -109,6 +120,13 @@ typedef struct Ast {
         struct {
             struct Ast *if_cond;
             struct Ast *if_branch;
+        };
+        /* for */
+        struct {
+            struct Ast *for_init;
+            struct Ast *for_cond;
+            struct Ast *for_update;
+            struct Ast *for_body;
         };
         /* stat */
         struct {

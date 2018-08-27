@@ -33,6 +33,15 @@ static void make_operator(Token *token, char c) {
                 token->token_kind = TOKEN_EQU;
             }
             break;
+        case '!':
+            c = getc(stdin);
+            if (c == '=') {
+                token->token_kind = TOKEN_NOT_EQU;
+            } else {
+                ungetc(c, stdin);
+                token->token_kind = TOKEN_NOT;
+            }
+            break;
         case '>':
             c = getc(stdin);
             if (c == '=') {
@@ -114,6 +123,9 @@ static void make_ident_or_type(Token *token, char c) {
             if (!strcmp(buf, "if")) {
                 token->token_kind = TOKEN_IF;
             }
+            if (!strcmp(buf, "for")) {
+                token->token_kind = TOKEN_FOR;
+            }
             if (!strcmp(buf, "int")) {
                 token->token_kind = TOKEN_TYPE;
             }
@@ -146,6 +158,7 @@ void lex_scan(Vector *token_vec) {
             case '=':
             case '<':
             case '>':
+            case '!':
                 make_operator(token, c);
                 break;
             case '{':

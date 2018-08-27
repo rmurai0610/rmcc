@@ -2,6 +2,8 @@
 
 static Ast *read_func_call();
 static Ast *read_stat_list(TokenKind end_kind);
+static Ast *read_expr();
+static Ast *read_stat();
 
 static Vector *token_vec;
 static int token_index;
@@ -9,13 +11,21 @@ static int token_index;
 static int char2int(char c) { return c - '0'; }
 
 static bool is_token(Token *token, TokenKind kind) { return token->token_kind == kind; }
+static bool is_token2(Token *token1, Token *token2, TokenKind kind1, TokenKind kind2) {
+    return token1->token_kind == kind1 && token2->token_kind == kind2;
+}
 
 static void match(Token *token, TokenKind kind) {
     if (!is_token(token, kind)) {
-        printf("%d\n", token_index);
+        printf("error on token: %d\n", token_index);
         error_token_mismatch(__func__, token->token_kind, kind);
     }
     token_index++;
+}
+
+static void match_curr(TokenKind kind) {
+    Token *token = vector_get(token_vec, token_index);
+    match(token, kind);
 }
 
 static Ast *make_ast() {
@@ -93,7 +103,7 @@ static Ast *read_int_lit(char *val) {
     return make_ast_int(n);
 }
 
-static Ast *read_factor() {
+static Ast *read_primary_expr() {
     Token *token = vector_get(token_vec, token_index);
     if (is_token(vector_get(token_vec, token_index), TOKEN_IDENT) &&
         is_token(vector_get(token_vec, token_index + 1), TOKEN_LPARAN)) {
@@ -119,11 +129,11 @@ static Ast *read_multiplicative_expr_tail(Ast *left) {
         return left;
     }
     token_index++;
-    Ast *right = read_factor();
+    Ast *right = read_primary_expr();
     return read_multiplicative_expr_tail(make_ast_op(token->token_kind, left, right));
 }
 
-static Ast *read_multiplicative_expr() { return read_multiplicative_expr_tail(read_factor()); }
+static Ast *read_multiplicative_expr() { return read_multiplicative_expr_tail(read_primary_expr()); }
 
 static Ast *read_additive_expr_tail(Ast *left) {
     if (token_vec->count == token_index) {
@@ -170,7 +180,55 @@ static Ast *read_equality_expr_tail(Ast *left) {
 }
 
 static Ast *read_equality_expr() { return read_equality_expr_tail(read_relational_expr()); }
-static Ast *read_expr() { return read_equality_expr(); }
+
+static Ast *read_rhs() { return read_expr(); }
+
+static Ast *read_lhs() {
+    Ast *ast = make_ast();
+    ast->type = AST_LHS;
+    Token *token = vector_get(token_vec, token_index);
+    if (is_token(token, TOKEN_TYPE)) {
+        match(token, TOKEN_TYPE);
+        ast->lhs_type = make_ast_type(token->token_val);
+    } else {
+        ast->lhs_type = NULL;
+    }
+    token = vector_get(token_vec, token_index);
+    match(token, TOKEN_IDENT);
+    ast->lhs_ident = make_ast_ident(token->token_val);
+    if (ast->lhs_type != NULL) {
+        symbol_table_add_variable(token->token_val);
+    }
+    return ast;
+}
+
+static Ast *read_assignment_expr() {
+    Ast *ast = make_ast();
+    ast->type = AST_ASSIGN;
+    ast->assign_lhs = read_lhs();
+    Token *token = vector_get(token_vec, token_index);
+    match(token, TOKEN_EQU);
+    ast->assign_rhs = read_rhs();
+    return ast;
+}
+
+static bool try_read_assignment_expr(Ast **ast) {
+    Token *token1 = vector_get(token_vec, token_index);
+    Token *token2 = vector_get(token_vec, token_index + 1);
+    if (!(is_token(token1, TOKEN_TYPE) || is_token2(token1, token2, TOKEN_IDENT, TOKEN_EQU))) {
+        return false;
+    }
+    *ast = read_assignment_expr();
+    return true;
+}
+
+static Ast *read_expr() {
+    Ast *ast = NULL;
+    if (try_read_assignment_expr(&ast)) {
+        return ast;
+    }
+    return read_equality_expr();
+}
 
 static Ast *read_arg_list(TokenKind end_kind) {
     Ast *ast = make_ast();
@@ -204,26 +262,14 @@ static Ast *read_func_call() {
     return ast;
 }
 
-static Ast *read_rhs() { return read_expr(); }
-
-static Ast *read_lhs() {
-    Ast *ast = make_ast();
-    ast->type = AST_LHS;
+static Ast *read_expr_stat() {
+    Ast *ast = read_expr();
     Token *token = vector_get(token_vec, token_index);
-    if (is_token(token, TOKEN_TYPE)) {
-        match(token, TOKEN_TYPE);
-        ast->lhs_type = make_ast_type(token->token_val);
-    } else {
-        ast->lhs_type = NULL;
-    }
-    token = vector_get(token_vec, token_index);
-    match(token, TOKEN_IDENT);
-    ast->lhs_ident = make_ast_ident(token->token_val);
-    symbol_table_add_variable(token->token_val);
+    match(token, TOKEN_SEMICOLON);
     return ast;
 }
 
-static Ast *read_stat_return() {
+static Ast *read_return_stat() {
     Token *token = vector_get(token_vec, token_index);
     match(token, TOKEN_RETURN);
     Ast *ast = make_ast();
@@ -232,7 +278,27 @@ static Ast *read_stat_return() {
     return ast;
 }
 
-static Ast *read_stat_if() {
+static Ast *read_for_stat() {
+    match_curr(TOKEN_FOR);
+    Ast *ast = make_ast();
+    ast->type = AST_FOR;
+
+    symbol_table_open_scope();
+    match_curr(TOKEN_LPARAN);
+    ast->for_init = read_expr_stat();
+    ast->for_cond = read_expr_stat();
+    ast->for_update = read_expr();
+    match_curr(TOKEN_RPARAN);
+
+    match_curr(TOKEN_LPARAN_CURLY);
+    ast->for_body = read_stat_list(TOKEN_RPARAN_CURLY);
+    match_curr(TOKEN_RPARAN_CURLY);
+    symbol_table_close_scope();
+
+    return ast;
+}
+
+static Ast *read_if_stat() {
     Token *token = vector_get(token_vec, token_index);
     match(token, TOKEN_IF);
     Ast *ast = make_ast();
@@ -252,37 +318,47 @@ static Ast *read_stat_if() {
     return ast;
 }
 
-static Ast *read_stat_assignment() {
-    Ast *ast = make_ast();
-    ast->type = AST_ASSIGN;
-    ast->stat_lhs = read_lhs();
+static bool try_read_if_stat(Ast **ast) {
     Token *token = vector_get(token_vec, token_index);
-    match(token, TOKEN_EQU);
-    ast->stat_rhs = read_rhs();
-    return ast;
+    if (!is_token(token, TOKEN_IF)) {
+        return false;
+    }
+    *ast = read_if_stat();
+    return true;
+}
+
+static bool try_read_for_stat(Ast **ast) {
+    Token *token = vector_get(token_vec, token_index);
+    if (!is_token(token, TOKEN_FOR)) {
+        return false;
+    }
+    *ast = read_for_stat();
+    return true;
+}
+
+static bool try_read_jump_stat(Ast **ast) {
+    Token *token = vector_get(token_vec, token_index);
+    if (!is_token(token, TOKEN_RETURN)) {
+        return false;
+    }
+    *ast = read_return_stat();
+    token = vector_get(token_vec, token_index);
+    match(token, TOKEN_SEMICOLON);
+    return true;
 }
 
 static Ast *read_stat() {
-    Token *token = vector_get(token_vec, token_index);
-    if (is_token(token, TOKEN_IF)) {
-        return read_stat_if();
-    }
     Ast *ast = NULL;
-    if (is_token(token, TOKEN_RETURN)) {
-        ast = read_stat_return();
-    }
-    if (is_token(token, TOKEN_TYPE)) {
-        ast = read_stat_assignment();
-    }
-    if (is_token(token, TOKEN_IDENT)) {
-        ast = read_expr();
-    }
-    if (ast != NULL) {
-        token = vector_get(token_vec, token_index);
-        match(token, TOKEN_SEMICOLON);
+    if (try_read_jump_stat(&ast)) {
         return ast;
     }
-    error_token_mismatch_group(__func__, token->token_kind, "statement");
+    if (try_read_if_stat(&ast)) {
+        return ast;
+    }
+    if (try_read_for_stat(&ast)) {
+        return ast;
+    }
+    return read_expr_stat();
 }
 
 static Ast *read_stat_list(TokenKind end_kind) {
