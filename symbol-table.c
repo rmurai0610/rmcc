@@ -1,4 +1,4 @@
-#include "self-c.h"
+#include "rmcc.h"
 
 static SymbolTable *root_table;
 static SymbolTable *current_table;

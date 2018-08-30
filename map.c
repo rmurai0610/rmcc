@@ -1,4 +1,4 @@
-#include "self-c.h"
+#include "rmcc.h"
 
 static int map_lookup_index(Map *map, char *key) {
     for (int i = 0; i < map->data->count; ++i) {

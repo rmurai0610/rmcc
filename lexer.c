@@ -1,4 +1,4 @@
-#include "self-c.h"
+#include "rmcc.h"
 
 static void skip_space(void) {
     int c;

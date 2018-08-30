@@ -1,4 +1,4 @@
-#include "self-c.h"
+#include "rmcc.h"
 
 void error(char *fmt, ...) {
     va_list args;

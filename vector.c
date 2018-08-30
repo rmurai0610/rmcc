@@ -1,5 +1,5 @@
 /* Vector of void pointers */
-#include "self-c.h"
+#include "rmcc.h"
 
 Vector *vector_init(void) {
     Vector *vec = (Vector *)malloc(sizeof(Vector));

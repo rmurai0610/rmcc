@@ -1,6 +1,6 @@
 CC=gcc -g -O0
 OBJS=error-util.o debug.o vector.o map.o lexer.o parser.o symbol-table.o codegen.o
-PROGRAM=self-c
+PROGRAM=rmcc
 UTILS_TEST=utils-test
 
 all: $(PROGRAM)

@@ -1,4 +1,4 @@
-#include "self-c.h"
+#include "rmcc.h"
 
 int main(int argc, char const *argv[]) {
     Vector *token_vec = lex_init();

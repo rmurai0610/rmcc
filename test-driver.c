@@ -1,4 +1,4 @@
-#include "self-c.h"
+#include "rmcc.h"
 
 extern int mymain(void);
 int main(int argc, char const* argv[]) {

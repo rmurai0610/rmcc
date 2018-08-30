@@ -1,4 +1,4 @@
-#include "self-c.h"
+#include "rmcc.h"
 static void emit_expr(Ast *ast);
 static void emit_stat_list(Ast *ast);
 
@@ -15,6 +15,30 @@ static int get_ident_offset(Ast *ast) {
         return -(symbol->offset * 8 + 8);
     }
     return 0;
+}
+
+static void push(char *reg) {
+    if (reg[0] == 'r') {
+        printf("\tpush %s\n", reg);
+        return;
+    }
+    if (reg[0] == 'e') {
+        printf("\tsub esp, 4\n");
+        printf("\tmov [esp], %s\n", reg);
+        return;
+    }
+}
+
+static void pop(char *reg) {
+    if (reg[0] == 'r') {
+        printf("\tpop %s\n", reg);
+        return;
+    }
+    if (reg[0] == 'e') {
+        printf("\tmov %s, [esp]\n", reg);
+        printf("\tadd esp, 4\n");
+        return;
+    }
 }
 
 static void emit_binop(Ast *ast) {
@@ -49,9 +73,9 @@ static void emit_binop(Ast *ast) {
             break;
     }
     emit_expr(ast->bin_right);
-    printf("\tpush rax\n");
+    push("rax");
     emit_expr(ast->bin_left);
-    printf("\tpop rbx\n");
+    pop("rbx");
     if (ast->bin_op == BIN_DOUBLE_EQU || ast->bin_op == BIN_GT || ast->bin_op == BIN_GTE || ast->bin_op == BIN_LT ||
         ast->bin_op == BIN_LTE) {
         printf("\tcmp rax, rbx\n");
@@ -82,7 +106,7 @@ static void emit_expr(Ast *ast) {
         for (int i = arguments->count - 1; i >= 0; --i) {
             Ast *arg = vector_get(arguments, i);
             emit_expr(arg);
-            printf("\tpush rax\n");
+            push("rax");
         }
         printf("\tcall %s\n", ast->func_name->str_val);
         printf("\tadd rsp, %d\n", 8 * arguments->count);
@@ -105,7 +129,7 @@ static void emit_stat(Ast *ast) {
     if (ast->type == AST_RETURN) {
         emit_expr(ast->stat_rhs);
         printf("\tmov rsp, rbp\n");
-        printf("\tpop rbp\n");
+        pop("rbp");
         printf("\tret\n");
         return;
     }
@@ -140,7 +164,7 @@ static void emit_stat_list(Ast *ast) {
 
 static void emit_func(Ast *ast) {
     printf("%s:\n", ast->func_name->str_val);
-    printf("\tpush rbp\n");
+    push("rbp");
     printf("\tmov rbp, rsp\n");
     printf("\tsub rsp, %d\n", (ast->symbol_table->variable_offset - 1) * 8);
     emit_stat_list(ast->func_stat_list);

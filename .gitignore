@@ -1,5 +1,5 @@
 *.s
 *.out
-self-c
+rmcc
 utils-test
 test.c

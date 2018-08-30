@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function compile {
-  echo "$1" | ./self-c > tmp.s
+  echo "$1" | ./rmcc > tmp.s
   if [ $? -ne 0 ]; then
     echo "Failed to compile $1"
     exit
@@ -25,7 +25,7 @@ function test {
   assertequal "$(./tmp.out)" "$1"
 }
 
-make -s self-c
+make -s rmcc
 
 test 0  'int main() { return 0; }'
 test 3  'int main() { return 1+2; }'

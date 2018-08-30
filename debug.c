@@ -1,4 +1,4 @@
-#include "self-c.h"
+#include "rmcc.h"
 const char *token_kind_string[] = {ALL_TOKENS(TO_STRING)};
 const char *ast_type_string[] = {ALL_AST(TO_STRING)};
 const char *bin_op_string[] = {ALL_BIN_OP(TO_STRING)};

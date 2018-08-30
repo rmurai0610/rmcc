@@ -1,4 +1,4 @@
-#include "self-c.h"
+#include "rmcc.h"
 #define ASSERT_EQUAL_INT(actual, expected)                         \
     if (!assert_equal_int(actual, expected, __func__, __LINE__)) { \
         FAILED_TEST();                                             \

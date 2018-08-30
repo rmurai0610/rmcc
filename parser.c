@@ -1,4 +1,4 @@
-#include "self-c.h"
+#include "rmcc.h"
 
 static Ast *read_func_call();
 static Ast *read_stat_list(TokenKind end_kind);
