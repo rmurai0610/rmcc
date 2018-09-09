@@ -37,6 +37,7 @@
     FUNC(TOKEN_GT)           \
     FUNC(TOKEN_LTE)          \
     FUNC(TOKEN_GTE)          \
+    FUNC(TOKEN_AND)          \
     /* identifier */         \
     FUNC(TOKEN_IDENT)        \
     /* types */              \
@@ -49,6 +50,7 @@
     FUNC(AST_TYPE)       \
     FUNC(AST_INT)        \
     FUNC(AST_BIN_OP)     \
+    FUNC(AST_UNARY_OP)   \
     FUNC(AST_RETURN)     \
     FUNC(AST_IF)         \
     FUNC(AST_FOR)        \
@@ -74,6 +76,10 @@
     FUNC(BIN_LT)         \
     FUNC(BIN_LTE)
 
+#define ALL_UNARY_OP(FUNC) \
+    FUNC(UNARY_ADDR)       \
+    FUNC(UNARY_DREF)
+
 #define ALL_SYMBOL_TYPE(FUNC) \
     FUNC(SYMBOL_VARIABLE)     \
     FUNC(SYMBOL_PARAM)
@@ -91,6 +97,7 @@ struct Token {
 /* AST */
 enum { ALL_AST(TO_ENUM) } typedef AstType;
 enum { ALL_BIN_OP(TO_ENUM) } typedef BinOp;
+enum { ALL_UNARY_OP(TO_ENUM) } typedef UnaryOp;
 extern const char *ast_type_string[];
 typedef struct Ast {
     struct SymbolTable *symbol_table;
@@ -105,6 +112,11 @@ typedef struct Ast {
             BinOp bin_op;
             struct Ast *bin_left;
             struct Ast *bin_right;
+        };
+        /* unary operator */
+        struct {
+            UnaryOp unary_op;
+            struct Ast *unary_operand;
         };
         /* assignment */
         struct {

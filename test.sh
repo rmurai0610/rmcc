@@ -61,4 +61,5 @@ test 1 'int fib(int i) { if (i <= 2) { return 1; } return fib(i - 1) + fib(i - 2
 test 55 'int fib(int i) { if (i <= 2) { return 1; } return fib(i - 1) + fib(i - 2); } int main() { return fib(10); }'
 test 1 'int main() { int a = 0; a = a + 1; return a; }'
 test 10 'int main() { int a = 0; for (int i = 0; i < 10; i = i + 1) { a = a + 1; } return a; }'
+test 10 'int main() { int a = 10; int *b = &a; return *b; }'
 echo "All tests passed"

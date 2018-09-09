@@ -60,6 +60,10 @@ static void make_operator(Token *token, char c) {
                 token->token_kind = TOKEN_LT;
             }
             break;
+        case '&':
+            token->token_kind = TOKEN_AND;
+            break;
+
         default:
             error_unexpected_token(__func__, c);
     }
@@ -159,6 +163,7 @@ void lex_scan(Vector *token_vec) {
             case '<':
             case '>':
             case '!':
+            case '&':
                 make_operator(token, c);
                 break;
             case '{':

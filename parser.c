@@ -94,6 +94,23 @@ static Ast *make_ast_op(TokenKind op, Ast *left, Ast *right) {
     return ast;
 }
 
+static Ast *make_unary_op(TokenKind op, Ast *operand) {
+    Ast *ast = make_ast();
+    ast->type = AST_UNARY_OP;
+    switch (op) {
+        case TOKEN_MUL:
+            ast->unary_op = UNARY_DREF;
+            break;
+        case TOKEN_AND:
+            ast->unary_op = UNARY_ADDR;
+            break;
+        default:
+            error_token_mismatch_group(__func__, op, "unary operators");
+    }
+    ast->unary_operand = operand;
+    return ast;
+}
+
 static Ast *read_int_lit(char *val) {
     int n = 0;
     while (*val != '\0') {
@@ -120,6 +137,15 @@ static Ast *read_primary_expr() {
     return read_int_lit(token->token_val);
 }
 
+static Ast *read_unary_expr() {
+    Token *token = vector_get(token_vec, token_index);
+    if (!(is_token(token, TOKEN_MUL) || is_token(token, TOKEN_AND))) {
+        return read_primary_expr();
+    }
+    token_index++;
+    return make_unary_op(token->token_kind, read_primary_expr());
+}
+
 static Ast *read_multiplicative_expr_tail(Ast *left) {
     if (token_vec->count == token_index) {
         return left;
@@ -129,11 +155,11 @@ static Ast *read_multiplicative_expr_tail(Ast *left) {
         return left;
     }
     token_index++;
-    Ast *right = read_primary_expr();
+    Ast *right = read_unary_expr();
     return read_multiplicative_expr_tail(make_ast_op(token->token_kind, left, right));
 }
 
-static Ast *read_multiplicative_expr() { return read_multiplicative_expr_tail(read_primary_expr()); }
+static Ast *read_multiplicative_expr() { return read_multiplicative_expr_tail(read_unary_expr()); }
 
 static Ast *read_additive_expr_tail(Ast *left) {
     if (token_vec->count == token_index) {
@@ -186,12 +212,16 @@ static Ast *read_rhs() { return read_expr(); }
 static Ast *read_lhs() {
     Ast *ast = make_ast();
     ast->type = AST_LHS;
+    ast->lhs_type = NULL;
     Token *token = vector_get(token_vec, token_index);
     if (is_token(token, TOKEN_TYPE)) {
         match(token, TOKEN_TYPE);
+        token = vector_get(token_vec, token_index);
+        if (is_token(token, TOKEN_MUL)) {
+            // TODO make proper pointer type
+            match(token, TOKEN_MUL);
+        }
         ast->lhs_type = make_ast_type(token->token_val);
-    } else {
-        ast->lhs_type = NULL;
     }
     token = vector_get(token_vec, token_index);
     match(token, TOKEN_IDENT);
@@ -215,7 +245,8 @@ static Ast *read_assignment_expr() {
 static bool try_read_assignment_expr(Ast **ast) {
     Token *token1 = vector_get(token_vec, token_index);
     Token *token2 = vector_get(token_vec, token_index + 1);
-    if (!(is_token(token1, TOKEN_TYPE) || is_token2(token1, token2, TOKEN_IDENT, TOKEN_EQU))) {
+    if (!(is_token(token1, TOKEN_TYPE) || is_token2(token1, token2, TOKEN_MUL, TOKEN_TYPE) ||
+          is_token2(token1, token2, TOKEN_IDENT, TOKEN_EQU))) {
         return false;
     }
     *ast = read_assignment_expr();

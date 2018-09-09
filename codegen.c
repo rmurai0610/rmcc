@@ -89,6 +89,21 @@ static void emit_binop(Ast *ast) {
     printf("\t%s rax, rbx\n", op);
 }
 
+static void emit_unary_op(Ast *ast) {
+    if (ast->unary_op == UNARY_ADDR && ast->unary_operand->type == AST_IDENT) {
+        int offset = get_ident_offset(ast->unary_operand);
+        if (offset >= 0) {
+            printf("\tlea rax, [rbp-%d]\n", offset);
+        } else {
+            printf("\tlea rax, [rbp+%d]\n", -offset);
+        }
+    }
+    if (ast->unary_op == UNARY_DREF) {
+        emit_expr(ast->unary_operand);
+        printf("\tmov rax, [rax]\n");
+    }
+}
+
 static void emit_expr(Ast *ast) {
     if (ast->type == AST_INT) {
         printf("\tmov rax, %d\n", ast->int_val);
@@ -113,6 +128,9 @@ static void emit_expr(Ast *ast) {
     }
     if (ast->type == AST_BIN_OP) {
         emit_binop(ast);
+    }
+    if (ast->type == AST_UNARY_OP) {
+        emit_unary_op(ast);
     }
     if (ast->type == AST_ASSIGN) {
         emit_expr(ast->assign_rhs);
